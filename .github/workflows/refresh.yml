@@ -1,0 +1,22 @@
+name: Refresh Parcel Data
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch parcels
+        run: node scripts/fetch_parcels.js > data/public_parcels.geojson
+      - name: Commit if changed
+        run: |
+          git config user.name "sprawlmap-bot"
+          git config user.email "sprawlmap-bot@users.noreply.github.com"
+          git add data/public_parcels.geojson
+          git diff --staged --quiet || git commit -m "chore: refresh parcel data $(date -u +%Y-%m-%d)"
+          git push
