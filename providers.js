@@ -1,4 +1,12 @@
 export const PROVIDERS = {
+  glm:{
+    label:'GLM (Zhipu AI)',
+    url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    models:['glm-4-plus','glm-4','glm-4-flash','glm-4-air','glm-4-airx','glm-3-turbo'],
+    default:'glm-4-flash',
+    format:'openai',
+    keyHint:'get key at open.bigmodel.cn',
+  },
   anthropic:{
     label:'Claude (Anthropic)',url:'https://api.anthropic.com/v1/messages',
     models:['claude-sonnet-4-20250514','claude-haiku-4-5-20251001'],
@@ -72,7 +80,7 @@ export const loadKey=p=>{try{return localStorage.getItem(PFX+p)||''}catch{return
 export const clearKey=p=>{try{localStorage.removeItem(PFX+p)}catch{}};
 
 export function bestAvailable(){
-  for(const p of['anthropic','openai','xai','openrouter','cloudflare','proxy']){
+  for(const p of['glm','anthropic','openai','xai','openrouter','cloudflare','proxy']){
     const k=loadKey(p);if(k)return new LLM({provider:p,apiKey:k});
   }
   // free fallback — OpenRouter Llama free tier, no key needed
