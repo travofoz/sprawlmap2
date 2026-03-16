@@ -100,14 +100,20 @@
     "high": "Private property. Avoid."
   },
   "luc_codes": {
-    "605": "Land Bank/CLRC — LOW risk",
+    "640": "Municipal (City) — LOW risk — safest option",
+    "605": "Land Bank/CLRC — LOW risk — safe option",
     "610": "State of Ohio — MED risk",
     "620": "Franklin County — MED risk",
     "630": "Township — MED risk",
-    "640": "City of Columbus — LOW risk",
-    "650": "School District — AVOID",
+    "650": "School District — AVOID — active enforcement",
     "660": "Metro Parks/COTA — MED risk",
     "670": "Religious/Charitable — MED risk",
     "680": "Other Exempt — MED risk"
+  },
+  "field_mapping": {
+    "CLASSCD": "Property class code (640, 605, etc.) — use this for filtering",
+    "CLASSDSCRP": "Property class description",
+    "OWNERNME1": "Owner name 1",
+    "PARCELID": "Parcel ID for auditor lookup"
   }
 }
