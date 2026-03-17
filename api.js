@@ -2,7 +2,7 @@ const FC      = 'https://gis.franklincountyohio.gov/hosting/rest/services/Parcel
 const AUDITOR = 'https://audr-api.franklincountyohio.gov/v1/parcel';
 const OVERPASS= 'https://overpass-api.de/api/interpreter';
 const NOMINATIM='https://nominatim.openstreetmap.org/search';
-const CARD    = 'https://property.franklincountyauditor.com/_web/propertycard/propertycard.aspx?pin=';
+const CARD    = 'https://audr-apps.franklincountyohio.gov/Redir/Link/Parcel/';
 const TTL     = 86_400_000;
 
 // CLASSCD codes and their properties (from Franklin County Auditor)

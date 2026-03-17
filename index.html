@@ -7,96 +7,106 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+  --text: #e6edf3; --text2: #8b949e;
+  --border: #30363d; --accent: #58a6ff; --green: #3fb950; --red: #f85149;
+  --font-size: 14px;
+}
+body.light { --bg: #f6f8fa; --bg2: #ffffff; --bg3: #f0f0f0; --text: #24292f; --text2: #57606a; --border: #d0d7de; }
+body.high-contrast { --bg: #000; --bg2: #111; --bg3: #222; --text: #fff; --text2: #ccc; --border: #fff; --accent: #ffff00; --green: #00ff00; --red: #ff0000; }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-#bar{display:flex;align-items:center;gap:4px;padding:6px;background:#161b22;border-bottom:1px solid #30363d;z-index:1000;flex-wrap:wrap}
-#bar h1{font-size:14px;font-weight:700;color:#58a6ff;margin-right:2px}
-.btn{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap}
-.btn:active,.btn.active{background:#388bfd22;border-color:#58a6ff;color:#58a6ff}
-.btn.green{border-color:#3fb950;color:#3fb950}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;font-size:var(--font-size)}
+#bar{display:flex;align-items:center;gap:4px;padding:6px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:1000;flex-wrap:wrap}
+#bar h1{font-size:14px;font-weight:700;color:var(--accent);margin-right:2px}
+.btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap}
+.btn:active,.btn.active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn.green{border-color:var(--green);color:var(--green)}
 .btn.sm{padding:2px 6px;font-size:10px}
-#status{font-size:10px;color:#8b949e;padding:2px 8px;background:#0d1117;border-bottom:1px solid #21262d}
+#status{font-size:10px;color:var(--text2);padding:2px 8px;background:var(--bg);border-bottom:1px solid var(--bg3)}
 #map{flex:1}
 
 /* Filters panel */
-#filters-panel{background:#161b22;border-bottom:1px solid #30363d;padding:8px;display:none}
+#filters-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px;display:none}
 #filters-panel.open{display:block}
-#filters-panel h3{font-size:11px;color:#8b949e;margin-bottom:6px}
+#filters-panel h3{font-size:11px;color:var(--text2);margin-bottom:6px}
 .filter-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
-.filter-row{display:flex;align-items:center;gap:4px;padding:4px;background:#0d1117;border-radius:4px;cursor:pointer;font-size:10px}
+.filter-row{display:flex;align-items:center;gap:4px;padding:4px;background:var(--bg);border-radius:4px;cursor:pointer;font-size:10px}
 .filter-row input{margin:0}
-.filter-row.avoid{border:1px solid #f85149}
+.filter-row.avoid{border:1px solid var(--red)}
 .color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .filter-actions{display:flex;gap:4px;margin-top:6px}
 
 /* Search controls */
-#search-controls{display:flex;gap:4px;padding:6px;background:#161b22;border-bottom:1px solid #30363d;align-items:center}
-#search-controls select{background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:4px 6px;font-size:11px}
+#search-controls{display:flex;gap:4px;padding:6px;background:var(--bg2);border-bottom:1px solid var(--border);align-items:center}
+#search-controls select{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 6px;font-size:11px}
 #search-controls button{padding:4px 12px}
 
 /* Legend */
-#legend{position:absolute;bottom:60px;left:10px;background:#161b22ee;border:1px solid #30363d;border-radius:6px;padding:8px;z-index:1000;min-width:140px}
-#legend-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:11px;color:#58a6ff}
+#legend{position:absolute;bottom:60px;left:10px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:1000;min-width:140px}
+#legend-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-size:11px;color:var(--accent)}
 #legend-content{margin-top:6px}
 #legend-content.collapsed{display:none}
 .legend-row{display:flex;align-items:center;gap:6px;font-size:10px;margin-bottom:3px}
 .color-box{width:12px;height:12px;border-radius:3px}
 
 /* Panel */
-#panel{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:2px solid #30363d;max-height:50dvh;display:flex;flex-direction:column;z-index:2000;transform:translateY(calc(100% - 30px));transition:transform .2s ease}
+#panel{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:2px solid var(--border);max-height:50dvh;display:flex;flex-direction:column;z-index:2000;transform:translateY(calc(100% - 30px));transition:transform .2s ease}
 #panel.open{transform:translateY(0)}
-#ptab{display:flex;border-bottom:1px solid #30363d}
-.tab{flex:1;padding:6px;font-size:11px;text-align:center;cursor:pointer;color:#8b949e;border-bottom:2px solid transparent}
-.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+#ptab{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:6px;font-size:11px;text-align:center;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 #pscroll{overflow-y:auto;flex:1;padding:8px}
-.card{background:#0d1117;border-radius:6px;padding:8px;margin-bottom:6px;border-left:3px solid #30363d;cursor:pointer}
-.card.low{border-color:#3fb950}.card.med{border-color:#eab308}.card.avoid,.card.high{border-color:#f85149}
-.card.selected{box-shadow:0 0 8px #58a6ff;background:#1a1f29}
-.card h3{font-size:11px;color:#58a6ff;margin-bottom:3px;line-height:1.3}
-.card p{font-size:10px;color:#8b949e;line-height:1.5}
-.card .dist{color:#3fb950;font-weight:600}
-.card a{color:#58a6ff;text-decoration:none}
+.card{background:var(--bg);border-radius:6px;padding:8px;margin-bottom:6px;border-left:3px solid var(--border);cursor:pointer}
+.card.low{border-color:var(--green)}.card.med{border-color:#eab308}.card.avoid,.card.high{border-color:var(--red)}
+.card.selected{box-shadow:0 0 8px var(--accent);background:var(--bg3)}
+.card h3{font-size:11px;color:var(--accent);margin-bottom:3px;line-height:1.3}
+.card p{font-size:10px;color:var(--text2);line-height:1.5}
+.card .dist{color:var(--green);font-weight:600}
+.card a{color:var(--accent);text-decoration:none}
 .badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:10px;font-weight:600;margin-right:4px}
-.badge.low{background:#1a4d2e;color:#3fb950}
+.badge.low{background:#1a4d2e;color:var(--green)}
 .badge.med{background:#3d2b00;color:#eab308}
-.badge.avoid,.badge.high{background:#3d0000;color:#f85149}
+.badge.avoid,.badge.high{background:#3d0000;color:var(--red)}
 
 /* LLM */
-#llm-input{display:flex;gap:4px;padding:6px;border-bottom:1px solid #30363d}
-#llm-input textarea{flex:1;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:4px 6px;font-size:11px;resize:none;height:40px;font-family:inherit}
-#llm-output{overflow-y:auto;padding:8px;font-size:11px;line-height:1.5;color:#c9d1d9;min-height:40px}
-#llm-output .thinking{color:#8b949e;font-style:italic}
+#llm-input{display:flex;gap:4px;padding:6px;border-bottom:1px solid var(--border)}
+#llm-input textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 6px;font-size:11px;resize:none;height:40px;font-family:inherit}
+#llm-output{overflow-y:auto;padding:8px;font-size:11px;line-height:1.5;color:var(--text);min-height:40px}
+#llm-output .thinking{color:var(--text2);font-style:italic}
 #llm-output .answer{white-space:pre-wrap}
 
 /* Settings */
-#settings-panel{display:none;position:fixed;inset:0;background:#0d1117f0;z-index:3000;overflow-y:auto;padding:16px}
+#settings-panel{display:none;position:fixed;inset:0;background:var(--bg);z-index:3000;overflow-y:auto;padding:16px}
 #settings-panel.open{display:block}
-#settings-panel h2{color:#58a6ff;margin-bottom:12px;font-size:14px}
+#settings-panel h2{color:var(--accent);margin-bottom:12px;font-size:14px}
+#settings-panel h3{color:var(--text2);font-size:11px}
+#settings-panel hr{border-color:var(--border)}
 .sg{margin-bottom:12px}
-.sg label{display:block;font-size:11px;color:#8b949e;margin-bottom:3px}
-.sg select,.sg input{width:100%;background:#161b22;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:6px;font-size:12px}
+.sg label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px}
+.sg select,.sg input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:6px;font-size:12px}
 
 /* Debug */
-#debug-panel{display:none;position:fixed;inset:0;background:#0d1117;z-index:3500;overflow-y:auto;padding:16px}
+#debug-panel{display:none;position:fixed;inset:0;background:var(--bg);z-index:3500;overflow-y:auto;padding:16px}
 #debug-panel.open{display:block}
-#debug-panel h2{color:#58a6ff;margin-bottom:8px;font-size:14px}
-#debug-log{background:#161b22;border-radius:6px;padding:10px;min-height:150px;max-height:45vh;overflow-y:auto;margin-bottom:10px;font-size:11px;line-height:1.5}
-#debug-log .user{color:#58a6ff}
-#debug-log .assistant{color:#3fb950}
-#debug-log .error{color:#f85149}
+#debug-panel h2{color:var(--accent);margin-bottom:8px;font-size:14px}
+#debug-log{background:var(--bg2);border-radius:6px;padding:10px;min-height:150px;max-height:45vh;overflow-y:auto;margin-bottom:10px;font-size:11px;line-height:1.5}
+#debug-log .user{color:var(--accent)}
+#debug-log .assistant{color:var(--green)}
+#debug-log .error{color:var(--red)}
 #debug-input-area{display:flex;gap:6px}
-#debug-input-area textarea{flex:1;background:#161b22;border:1px solid #30363d;border-radius:4px;color:#e6edf3;padding:8px;font-size:12px;resize:none;height:60px;font-family:inherit}
+#debug-input-area textarea{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:8px;font-size:12px;resize:none;height:60px;font-family:inherit}
 
 /* Context Menu */
-#ctx-menu{position:absolute;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:4px 0;z-index:3000;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.5);display:none}
+#ctx-menu{position:absolute;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:4px 0;z-index:3000;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.5);display:none}
 #ctx-menu.show{display:block}
-#ctx-menu button{display:block;width:100%;text-align:left;background:none;border:none;color:#e6edf3;padding:8px 12px;font-size:11px;cursor:pointer;border-radius:4px}
-#ctx-menu button:hover{background:#21262d;color:#58a6ff}
-#ctx-menu button.danger{color:#f85149}
+#ctx-menu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:8px 12px;font-size:11px;cursor:pointer;border-radius:4px}
+#ctx-menu button:hover{background:var(--bg3);color:var(--accent)}
+#ctx-menu button.danger{color:var(--red)}
 #ctx-menu button.danger:hover{background:#3d0000}
-#ctx-menu .divider{height:1px;background:#30363d;margin:4px 0}
+#ctx-menu .divider{height:1px;background:var(--border);margin:4px 0}
 
-#handle{text-align:center;padding:4px;cursor:pointer;color:#8b949e;font-size:16px}
+#handle{text-align:center;padding:4px;cursor:pointer;color:var(--text2);font-size:16px}
 </style>
 </head>
 <body>
@@ -118,6 +128,12 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;height:10
     <button class="btn sm" onclick="selectAllFilters()">All</button>
     <button class="btn sm" onclick="selectNoFilters()">None</button>
     <button class="btn sm" onclick="selectRecommended()">Recommended</button>
+  </div>
+  <h3 style="margin-top:12px">Filter by Resource Type</h3>
+  <div class="filter-grid" id="resourceFilterGrid"></div>
+  <div class="filter-actions">
+    <button class="btn sm" onclick="selectAllResFilters()">All</button>
+    <button class="btn sm" onclick="selectNoResFilters()">None</button>
   </div>
 </div>
 
@@ -189,6 +205,33 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;height:10
     <label>API Key <span style="color:#3fb950;font-size:9px">(local storage)</span></label>
     <input type="password" id="apiKeyInp" placeholder="Get key from provider"/>
   </div>
+  <hr style="border-color:#30363d;margin:12px 0">
+  <h3 style="font-size:12px;margin-bottom:8px">Display</h3>
+  <div class="sg">
+    <label>Font Size</label>
+    <select id="fontSizeSel">
+      <option value="12">Small (12px)</option>
+      <option value="14" selected>Medium (14px)</option>
+      <option value="16">Large (16px)</option>
+      <option value="18">XL (18px)</option>
+    </select>
+  </div>
+  <div class="sg">
+    <label>Theme</label>
+    <select id="themeSel">
+      <option value="dark" selected>Dark</option>
+      <option value="light">Light</option>
+      <option value="high-contrast">High Contrast</option>
+    </select>
+  </div>
+  <div class="sg">
+    <label>Map Style</label>
+    <select id="mapStyleSel">
+      <option value="osm" selected>OpenStreetMap</option>
+      <option value="satellite">Satellite (Esri)</option>
+      <option value="topo">Topographic</option>
+    </select>
+  </div>
   <button class="btn green" id="saveSettings" style="width:100%;padding:8px;margin-top:8px">Save</button>
   <button class="btn" id="closeSettings" style="width:100%;padding:8px;margin-top:6px">Cancel</button>
 </div>
@@ -226,7 +269,6 @@ import {
 
 // Map setup
 const map = L.map('map', {zoomControl: false}).setView([39.9612, -82.9988], 13);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OSM', maxZoom: 19}).addTo(map);
 L.control.zoom({position: 'topright'}).addTo(map);
 
 let parcelLayerGroup = L.layerGroup().addTo(map);
@@ -239,6 +281,42 @@ let currentParcels = [];
 
 // Filter state
 let enabledClasses = ['640','605']; // default: Municipal + Land Bank
+let enabledResourceTypes = Object.keys(RESOURCE_TYPES); // default: all resources
+
+// Status helper
+function setStatus(s) { document.getElementById('status').innerHTML = s; }
+
+// Build resource filter grid
+function buildResourceFilterGrid() {
+  const grid = document.getElementById('resourceFilterGrid');
+  grid.innerHTML = '';
+  for (const [type, info] of Object.entries(RESOURCE_TYPES)) {
+    const checked = enabledResourceTypes.includes(type) ? 'checked' : '';
+    const row = document.createElement('label');
+    row.className = 'filter-row';
+    row.innerHTML = `
+      <input type="checkbox" data-resource="${type}" ${checked}>
+      <span style="font-size:14px">${info.icon}</span>
+      <span>${info.label}</span>
+    `;
+    row.querySelector('input').onchange = e => {
+      if (e.target.checked) {
+        if (!enabledResourceTypes.includes(type)) enabledResourceTypes.push(type);
+      } else {
+        enabledResourceTypes = enabledResourceTypes.filter(t => t !== type);
+      }
+    };
+    grid.appendChild(row);
+  }
+}
+window.selectAllResFilters = () => {
+  enabledResourceTypes = Object.keys(RESOURCE_TYPES);
+  document.querySelectorAll('[data-resource]').forEach(cb => cb.checked = true);
+};
+window.selectNoResFilters = () => {
+  enabledResourceTypes = [];
+  document.querySelectorAll('[data-resource]').forEach(cb => cb.checked = false);
+};
 
 // Status helper
 function setStatus(s) { document.getElementById('status').innerHTML = s; }
@@ -398,9 +476,12 @@ function selectParcel(pid) {
 function displayResources(resources) {
   resourceLayer.clearLayers();
   const el = document.getElementById('tab-resources');
-  el.innerHTML = `<p style="color:#8b949e;font-size:10px;margin-bottom:6px">${resources.length} resources nearby</p>`;
 
-  for (const r of resources) {
+  // Filter by enabled types
+  const filtered = resources.filter(r => enabledResourceTypes.includes(r.type));
+  el.innerHTML = `<p style="color:#8b949e;font-size:10px;margin-bottom:6px">${filtered.length} resources (of ${resources.length} total)</p>`;
+
+  for (const r of filtered) {
     if (!r.lat) continue;
 
     // Marker
@@ -475,7 +556,12 @@ async function searchResources() {
   try {
     // Use searchCenter if set, otherwise map center
     const center = searchCenter || {lat: map.getCenter().lat, lon: map.getCenter().lng};
-    const resources = await findNearbyResources({lat: center.lat, lon: center.lon, radiusMeters: 1500});
+    const resources = await findNearbyResources({
+      lat: center.lat,
+      lon: center.lon,
+      radiusMeters: 1500,
+      types: enabledResourceTypes
+    });
     displayResources(resources);
     setStatus(`✅ ${resources.length} resources`);
   } catch (e) {
@@ -552,12 +638,51 @@ if (sp && PROVIDERS[sp]) { provSel.value = sp; syncModels(); }
 const sm = localStorage.getItem('scout_model');
 if (sm) modSel.value = sm;
 
+// Display settings
+const fontSizeSel = document.getElementById('fontSizeSel');
+const themeSel = document.getElementById('themeSel');
+const mapStyleSel = document.getElementById('mapStyleSel');
+let currentTileLayer = null;
+
+const MAP_STYLES = {
+  osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+};
+
+function applyDisplaySettings() {
+  const fontSize = localStorage.getItem('scout_fontSize') || '14';
+  const theme = localStorage.getItem('scout_theme') || 'dark';
+  const mapStyle = localStorage.getItem('scout_mapStyle') || 'osm';
+
+  // Apply font size
+  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+  fontSizeSel.value = fontSize;
+
+  // Apply theme
+  document.body.className = theme;
+  themeSel.value = theme;
+
+  // Apply map style
+  mapStyleSel.value = mapStyle;
+  if (currentTileLayer) map.removeLayer(currentTileLayer);
+  currentTileLayer = L.tileLayer(MAP_STYLES[mapStyle] || MAP_STYLES.osm, {
+    attribution: mapStyle === 'satellite' ? '© Esri' : '© OSM',
+    maxZoom: 19
+  }).addTo(map);
+}
+applyDisplaySettings();
+
 document.getElementById('settingsBtn').onclick = () => document.getElementById('settings-panel').classList.add('open');
 document.getElementById('closeSettings').onclick = () => document.getElementById('settings-panel').classList.remove('open');
 document.getElementById('saveSettings').onclick = () => {
   saveKey(provSel.value, keyInp.value.trim());
   localStorage.setItem('scout_provider', provSel.value);
   localStorage.setItem('scout_model', modSel.value);
+  localStorage.setItem('scout_fontSize', fontSizeSel.value);
+  localStorage.setItem('scout_theme', themeSel.value);
+  localStorage.setItem('scout_mapStyle', mapStyleSel.value);
+  applyDisplaySettings();
   document.getElementById('settings-panel').classList.remove('open');
   setStatus('✅ Saved');
 };
@@ -634,11 +759,25 @@ let ctxParcelId = null;
 let searchCenter = null;
 let centerMarker = null;
 
-// Find parcel at click point using Leaflet's layer querying
+// Point-in-polygon check (ray casting algorithm)
+function pointInPolygon(point, polygon) {
+  const [x, y] = point;
+  const coords = polygon.getLatLngs()[0];
+  let inside = false;
+  for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+    const xi = coords[i].lat, yi = coords[i].lng;
+    const xj = coords[j].lat, yj = coords[j].lng;
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Find parcel at click point using point-in-polygon
 function findParcelAtLatLng(latlng) {
-  const layers = Object.values(parcelPolygons);
-  for (const layer of layers) {
-    if (layer.getBounds && layer.getBounds().contains(latlng)) {
+  for (const [pid, layer] of Object.entries(parcelPolygons)) {
+    if (pointInPolygon([latlng.lat, latlng.lng], layer)) {
       return layer;
     }
   }
@@ -751,6 +890,7 @@ document.getElementById('debug-q').onkeydown = e => {
 
 // Initialize
 buildFilterGrid();
+buildResourceFilterGrid();
 </script>
 </body>
 </html>
