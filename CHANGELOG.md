@@ -57,7 +57,7 @@
 
 ### Risk Levels (Updated)
 
-| Risk | USECD | Meaning |
+| Risk | CLASSCD | Meaning |
 |------|-------|---------|
 | `low` | 640, 605 | City/Land Bank. CPD trespass auth required, rarely filed. **SAFEST** |
 | `med` | 610, 620, 630, 660, 670, 680 | Other public entities. Verify before use. |
