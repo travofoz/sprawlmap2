@@ -279,9 +279,6 @@ export const sortParcels = (parcels, sortBy = 'risk', gpsLat = null, gpsLon = nu
     case 'class':
       sorted.sort((a, b) => (a.classcd || '').localeCompare(b.classcd || ''));
       break;
-    case 'address':
-      sorted.sort((a, b) => (a.address || '').localeCompare(b.address || ''));
-      break;
     case 'owner':
       sorted.sort((a, b) => (a.owner || '').localeCompare(b.owner || ''));
       break;

@@ -40,6 +40,43 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
 .color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .filter-actions{display:flex;gap:4px;margin-top:6px}
 
+/* Filter panel form controls */
+#filters-panel select,
+#filters-panel input[type="range"] {
+  font-size: inherit;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px;
+}
+#filters-panel input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--bg3);
+  border: none;
+  border-radius: 3px;
+  padding: 0;
+}
+#filters-panel input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+#filters-panel input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
 /* Search controls */
 #search-controls{display:flex;gap:4px;padding:6px;background:var(--bg2);border-bottom:1px solid var(--border);align-items:center}
 #search-controls select{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 6px;font-size:0.8rem}
@@ -118,14 +155,9 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
   <!-- Search Radius -->
   <h3>Search Radius</h3>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <select id="radiusSel">
-      <option value="0.25">0.25 mi</option>
-      <option value="0.5" selected>0.5 mi</option>
-      <option value="1">1 mi</option>
-      <option value="2">2 mi</option>
-      <option value="5">5 mi</option>
-    </select>
-    <span style="font-size:0.7rem;color:#8b949e">Distance from search center</span>
+    <input type="range" id="radiusSlider" min="0.25" max="5" step="0.25" value="0.5" style="flex:1"
+           oninput="document.getElementById('radiusVal').textContent=this.value+' mi'">
+    <span id="radiusVal" style="min-width:3.5rem;text-align:right">0.5 mi</span>
   </div>
 
   <!-- Sort Results -->
@@ -146,7 +178,6 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
       </optgroup>
       <optgroup label="Property Info">
         <option value="class">Class Code (A→Z)</option>
-        <option value="address">Address (A→Z)</option>
         <option value="owner">Owner (A→Z)</option>
       </optgroup>
     </select>
@@ -299,6 +330,7 @@ L.control.zoom({position: 'topright'}).addTo(map);
 let parcelLayerGroup = L.layerGroup().addTo(map);
 let parcelPolygons = {}; // parcel_id -> polygon
 let resourceLayer = L.layerGroup().addTo(map);
+let resourceMarkers = {}; // type -> [marker, ...]
 let userMarker = null;
 let curLat = 39.9612, curLon = -82.9988;
 let gpsLat = null, gpsLon = null;
@@ -329,6 +361,7 @@ function buildResourceFilterGrid() {
       } else {
         enabledResourceTypes = enabledResourceTypes.filter(t => t !== type);
       }
+      updateResourceVisibility();
     };
     grid.appendChild(row);
   }
@@ -336,10 +369,12 @@ function buildResourceFilterGrid() {
 window.selectAllResFilters = () => {
   enabledResourceTypes = Object.keys(RESOURCE_TYPES);
   document.querySelectorAll('[data-resource]').forEach(cb => cb.checked = true);
+  updateResourceVisibility();
 };
 window.selectNoResFilters = () => {
   enabledResourceTypes = [];
   document.querySelectorAll('[data-resource]').forEach(cb => cb.checked = false);
+  updateResourceVisibility();
 };
 
 // Status helper
@@ -398,6 +433,19 @@ function updateMapVisibility() {
     } else {
       parcelLayerGroup.removeLayer(polygon);
     }
+  }
+}
+
+// Update resource marker visibility
+function updateResourceVisibility() {
+  for (const [type, markers] of Object.entries(resourceMarkers)) {
+    markers.forEach(m => {
+      if (enabledResourceTypes.includes(type)) {
+        if (!resourceLayer.hasLayer(m)) resourceLayer.addLayer(m);
+      } else {
+        resourceLayer.removeLayer(m);
+      }
+    });
   }
 }
 
@@ -499,6 +547,7 @@ function selectParcel(pid) {
 // Display resources
 function displayResources(resources) {
   resourceLayer.clearLayers();
+  resourceMarkers = {}; // Reset tracking
   const el = document.getElementById('tab-resources');
 
   // Filter by enabled types
@@ -509,7 +558,7 @@ function displayResources(resources) {
     if (!r.lat) continue;
 
     // Marker
-    L.marker([r.lat, r.lon], {
+    const marker = L.marker([r.lat, r.lon], {
       icon: L.divIcon({
         html: `<span style="font-size:1.1rem;line-height:1">${r.icon}</span>`,
         className: '',
@@ -518,6 +567,10 @@ function displayResources(resources) {
     })
     .bindPopup(`<b>${r.icon} ${r.type_label || r.type}</b><br>${r.name}${r.address ? `<br>${r.address}` : ''}`)
     .addTo(resourceLayer);
+
+    // Track marker by type
+    if (!resourceMarkers[r.type]) resourceMarkers[r.type] = [];
+    resourceMarkers[r.type].push(marker);
 
     // Card
     const c = document.createElement('div');
@@ -536,7 +589,7 @@ async function searchParcels() {
   setStatus('⏳ Searching...');
   document.getElementById('panel').classList.add('open');
 
-  const radius = parseFloat(document.getElementById('radiusSel').value);
+  const radius = parseFloat(document.getElementById('radiusSlider').value);
   const sortBy = document.getElementById('sortSel').value;
 
   // Priority: searchCenter > GPS > map center
