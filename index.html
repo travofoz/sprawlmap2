@@ -121,6 +121,8 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
   <button class="btn" id="settingsBtn">⚙️</button>
 </div>
 
+<div id="err-log" style="max-height:60px;overflow-y:auto;background:var(--bg2);border-bottom:1px solid var(--border);font-size:0.7rem;padding:4px 8px;word-break:break-all"></div>
+
 <div id="filters-panel">
   <h3>Filter by Property Class</h3>
   <div class="filter-grid" id="filterGrid"></div>
@@ -885,6 +887,5 @@ document.getElementById('debug-q').onkeydown = e => {
 buildFilterGrid();
 buildResourceFilterGrid();
 </script>
-<div id="err-log" style="position:fixed;bottom:0;left:0;right:0;max-height:80px;overflow-y:auto;background:var(--bg2);border-top:1px solid var(--border);font-size:0.7rem;padding:4px 8px;z-index:9999;word-break:break-all"></div>
 </body>
 </html>
