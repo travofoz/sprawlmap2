@@ -177,7 +177,6 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
     <div class="tab active" data-tab="parcels">🏛 Parcels</div>
     <div class="tab" data-tab="resources">💡 Resources</div>
     <div class="tab" data-tab="ask">🤖 Ask</div>
-    <div class="tab" data-tab="debug">🔧 Debug</div>
   </div>
   <div id="pscroll">
     <div id="tab-parcels"><p style="color:#8b949e;font-size:0.8rem">Tap 📍 then 🔍 Search</p></div>
@@ -188,14 +187,6 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
         <button class="btn" id="sendQ">→</button>
       </div>
       <div id="llm-output"><span class="thinking">Ask about this area.</span></div>
-    </div>
-    <div id="tab-debug" style="display:none">
-      <p style="color:#8b949e;font-size:0.7rem;margin-bottom:8px">GLM coding assistant for debugging</p>
-      <div id="debug-log2" style="background:var(--bg);border-radius:6px;padding:10px;min-height:80px;max-height:30vh;overflow-y:auto;margin-bottom:8px;font-size:0.8rem;line-height:1.5"></div>
-      <div style="display:flex;gap:6px">
-        <textarea id="debug-q2" placeholder="Describe bug or paste error..." style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:8px;font-size:0.85rem;resize:none;height:50px;font-family:inherit"></textarea>
-        <button class="btn green" id="debug-send2">Ask</button>
-      </div>
     </div>
   </div>
 </div>
@@ -277,13 +268,13 @@ import {
 } from './api.js';
 
 window.onerror = (msg, src, line, col, err) => {
-  const bar = document.getElementById('err-bar');
-  if (bar) { bar.style.display = 'block'; bar.textContent = `❌ L${line}: ${msg}`; }
+  const log = document.getElementById('err-log');
+  if (log) { log.innerHTML += `<div style="color:var(--red)">❌ L${line}: ${msg}</div>`; log.scrollTop = log.scrollHeight; }
   return false;
 };
 window.addEventListener('unhandledrejection', e => {
-  const bar = document.getElementById('err-bar');
-  if (bar) { bar.style.display = 'block'; bar.textContent = `❌ Promise: ${e.reason?.message || e.reason}`; }
+  const log = document.getElementById('err-log');
+  if (log) { log.innerHTML += `<div style="color:var(--red)">❌ Promise: ${e.reason?.message || e.reason}</div>`; log.scrollTop = log.scrollHeight; }
 });
 
 // Map setup
@@ -751,33 +742,9 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => openPanel(t.dat
 function openPanel(tab) {
   document.getElementById('panel').classList.add('open');
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['parcels', 'resources', 'ask', 'debug'].forEach(id =>
+  ['parcels', 'resources', 'ask'].forEach(id =>
     document.getElementById(`tab-${id}`).style.display = id === tab ? 'block' : 'none'
   );
-}
-
-// Debug
-const debugLog = document.getElementById('debug-log');
-const debugLog2 = document.getElementById('debug-log2');
-let debugHistory = [];
-
-function showDebugContext(logEl) {
-  logEl.innerHTML = `<div style="color:#8b949e;margin-bottom:8px;font-size:0.7rem">
-    <b>Context:</b> GPS: ${gpsLat?.toFixed(4) || 'none'} · Map: ${curLat.toFixed(4)}, ${curLon.toFixed(4)} ·
-    Provider: ${localStorage.getItem('scout_provider') || 'default'} ·
-    Filters: ${enabledClasses.join(',')}
-  </div>`;
-}
-
-document.getElementById('debugBtn').onclick = () => {
-  document.getElementById('debug-panel').classList.add('open');
-  showDebugContext(debugLog);
-};
-document.getElementById('closeDebug').onclick = () => document.getElementById('debug-panel').classList.remove('open');
-
-// Debug tab in panel
-if (debugLog2) {
-  debugLog2.closest('#tab-debug').addEventListener('click', () => showDebugContext(debugLog2), { once: true });
 }
 
 // Context Menu
@@ -954,6 +921,6 @@ document.getElementById('debug-q2').onkeydown = e => {
 buildFilterGrid();
 buildResourceFilterGrid();
 </script>
-<div id="err-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#3d0000;color:#f85149;font-size:0.8rem;padding:6px 10px;z-index:9999;word-break:break-all"></div>
+<div id="err-log" style="position:fixed;bottom:0;left:0;right:0;max-height:80px;overflow-y:auto;background:var(--bg2);border-top:1px solid var(--border);font-size:0.7rem;padding:4px 8px;z-index:9999;word-break:break-all"></div>
 </body>
 </html>
