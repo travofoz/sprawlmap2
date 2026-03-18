@@ -11,12 +11,12 @@
   --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
   --text: #e6edf3; --text2: #8b949e;
   --border: #30363d; --accent: #58a6ff; --green: #3fb950; --red: #f85149;
-  --font-size: 14px;
+  --font-size: 16px;
 }
 body.light { --bg: #f6f8fa; --bg2: #ffffff; --bg3: #f0f0f0; --text: #24292f; --text2: #57606a; --border: #d0d7de; }
 body.high-contrast { --bg: #000; --bg2: #111; --bg3: #222; --text: #fff; --text2: #ccc; --border: #fff; --accent: #ffff00; --green: #00ff00; --red: #ff0000; }
 *{box-sizing:border-box;margin:0;padding:0}
-html{font-size:var(--font-size)}
+html{font-size:16px}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 #bar{display:flex;align-items:center;gap:4px;padding:6px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:1000;flex-wrap:wrap}
 #bar h1{font-size:1rem;font-weight:700;color:var(--accent);margin-right:2px}
@@ -203,10 +203,11 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
   <div class="sg">
     <label>Font Size</label>
     <select id="fontSizeSel">
-      <option value="12">Small (12px)</option>
-      <option value="14" selected>Medium (14px)</option>
-      <option value="16">Large (16px)</option>
-      <option value="18">XL (18px)</option>
+      <option value="14">Small (14px)</option>
+      <option value="16" selected>Medium (16px)</option>
+      <option value="18">Large (18px)</option>
+      <option value="20">XL (20px)</option>
+      <option value="22">XXL (22px)</option>
     </select>
   </div>
   <div class="sg">
@@ -656,12 +657,12 @@ const MAP_STYLES = {
 };
 
 function applyDisplaySettings() {
-  const fontSize = localStorage.getItem('scout_fontSize') || '14';
+  const fontSize = localStorage.getItem('scout_fontSize') || '16';
   const theme = localStorage.getItem('scout_theme') || 'dark';
   const mapStyle = localStorage.getItem('scout_mapStyle') || 'osm';
 
   // Apply font size
-  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+  document.documentElement.style.fontSize = fontSize + 'px';
   fontSizeSel.value = fontSize;
 
   // Apply theme
