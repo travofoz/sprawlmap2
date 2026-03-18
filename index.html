@@ -267,6 +267,16 @@ import {
   riskText
 } from './api.js';
 
+window.onerror = (msg, src, line, col, err) => {
+  const bar = document.getElementById('err-bar');
+  if (bar) { bar.style.display = 'block'; bar.textContent = `❌ L${line}: ${msg}`; }
+  return false;
+};
+window.addEventListener('unhandledrejection', e => {
+  const bar = document.getElementById('err-bar');
+  if (bar) { bar.style.display = 'block'; bar.textContent = `❌ Promise: ${e.reason?.message || e.reason}`; }
+});
+
 // Map setup
 const map = L.map('map', {zoomControl: false}).setView([39.9612, -82.9988], 13);
 let currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OSM', maxZoom: 19}).addTo(map);
@@ -279,13 +289,12 @@ let userMarker = null;
 let curLat = 39.9612, curLon = -82.9988;
 let gpsLat = null, gpsLon = null;
 let currentParcels = [];
+let searchCenter = null;
+let centerMarker = null;
 
 // Filter state
 let enabledClasses = ['640','605']; // default: Municipal + Land Bank
 let enabledResourceTypes = Object.keys(RESOURCE_TYPES); // default: all resources
-
-// Status helper
-function setStatus(s) { document.getElementById('status').innerHTML = s; }
 
 // Build resource filter grid
 function buildResourceFilterGrid() {
@@ -756,8 +765,6 @@ document.getElementById('closeDebug').onclick = () => document.getElementById('d
 const ctxMenu = document.getElementById('ctx-menu');
 let ctxLat = 0, ctxLon = 0;
 let ctxParcelId = null;
-let searchCenter = null;
-let centerMarker = null;
 
 // Point-in-polygon check (ray casting algorithm)
 function pointInPolygon(point, polygon) {
@@ -892,5 +899,6 @@ document.getElementById('debug-q').onkeydown = e => {
 buildFilterGrid();
 buildResourceFilterGrid();
 </script>
+<div id="err-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#3d0000;color:#f85149;font-size:11px;padding:6px 10px;z-index:9999;word-break:break-all"></div>
 </body>
 </html>
