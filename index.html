@@ -560,9 +560,9 @@ function displayResources(resources) {
     // Marker
     const marker = L.marker([r.lat, r.lon], {
       icon: L.divIcon({
-        html: `<span style="font-size:1.1rem;line-height:1">${r.icon}</span>`,
+        html: `<span style="font-size:0.8rem;line-height:1">${r.icon}</span>`,
         className: '',
-        iconSize: [20, 20]
+        iconSize: [14, 14]
       })
     })
     .bindPopup(`<b>${r.icon} ${r.type_label || r.type}</b><br>${r.name}${r.address ? `<br>${r.address}` : ''}`)
