@@ -294,15 +294,29 @@ export async function findNearbyResources({lat, lon, radiusMeters=800, types}={}
   const cached = cacheGet(ck);
   if (cached) return cached;
 
-  const queries = keys.flatMap(k =>
+  // Build all queries
+  const allQueries = keys.flatMap(k =>
     (RESOURCE_TYPES[k]?.overpass || '').split(',').map(q => `${q}(around:${radiusMeters},${lat},${lon});`)
   );
-  const ql = `[out:json][timeout:25];(${queries.join('')});out center tags;`;
 
-  const r = await fetch(OVERPASS, {method: 'POST', body: 'data=' + encodeURIComponent(ql)});
-  const d = await r.json();
+  // Split into batches of 10 to avoid Overpass API timeout/complexity limits
+  const BATCH_SIZE = 10;
+  const allElements = [];
 
-  const osmResults = (d.elements || []).map(e => {
+  for (let i = 0; i < allQueries.length; i += BATCH_SIZE) {
+    const batchQueries = allQueries.slice(i, i + BATCH_SIZE);
+    const ql = `[out:json][timeout:25];(${batchQueries.join('')});out center tags;`;
+
+    const r = await fetch(OVERPASS, {method: 'POST', body: 'data=' + encodeURIComponent(ql)});
+    if (!r.ok) {
+      const text = await r.text();
+      throw new Error(`Overpass API error (${r.status}): ${text.slice(0, 200)}`);
+    }
+    const d = await r.json();
+    allElements.push(...(d.elements || []));
+  }
+
+  const osmResults = allElements.map(e => {
     const rl = e.lat || e.center?.lat, ro = e.lon || e.center?.lon;
     const t = e.tags || {};
     const name = (t.name || '').toLowerCase();
