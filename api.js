@@ -302,18 +302,34 @@ export async function findNearbyResources({lat, lon, radiusMeters=800, types}={}
   // Split into batches of 10 to avoid Overpass API timeout/complexity limits
   const BATCH_SIZE = 10;
   const allElements = [];
+  const delay = ms => new Promise(res => setTimeout(res, ms));
 
   for (let i = 0; i < allQueries.length; i += BATCH_SIZE) {
     const batchQueries = allQueries.slice(i, i + BATCH_SIZE);
     const ql = `[out:json][timeout:25];(${batchQueries.join('')});out center tags;`;
 
-    const r = await fetch(OVERPASS, {method: 'POST', body: 'data=' + encodeURIComponent(ql)});
+    // Retry with exponential backoff for rate limiting
+    let retries = 3;
+    let r;
+    while (retries >= 0) {
+      r = await fetch(OVERPASS, {method: 'POST', body: 'data=' + encodeURIComponent(ql)});
+      if (r.ok || r.status !== 429) break;
+      if (retries === 0) break;
+      await delay(2000 * (4 - retries)); // 2s, 4s, 6s
+      retries--;
+    }
+
     if (!r.ok) {
       const text = await r.text();
       throw new Error(`Overpass API error (${r.status}): ${text.slice(0, 200)}`);
     }
     const d = await r.json();
     allElements.push(...(d.elements || []));
+
+    // Delay between batches to avoid rate limiting
+    if (i + BATCH_SIZE < allQueries.length) {
+      await delay(1000);
+    }
   }
 
   const osmResults = allElements.map(e => {
