@@ -691,7 +691,7 @@ export async function fetchCodeEnforcement(parcelId) {
   try {
     const params = new URLSearchParams({
       where: `B1_PARCEL_NBR = '${cleanParcelId}'`,
-      outFields: 'B1_ALT_ID,B1_PER_TYPE,B1_PER_SUB_TYPE,B1_APPL_STATUS,B1_FILE_DD,INSP_LAST_DATE,INSP_LAST_RESULT,SITE_ADDRESS,ACA_URL',
+      outFields: 'B1_ALT_ID,B1_PER_TYPE,B1_PER_SUB_TYPE,B1_PER_CATEGORY,B1_APPL_STATUS,B1_FILE_DD,INSP_LAST_DATE,INSP_LAST_RESULT,SITE_ADDRESS,ACA_URL',
       orderByFields: 'B1_FILE_DD DESC',
       resultRecordCount: '25',
       returnGeometry: 'false',
@@ -713,6 +713,7 @@ export async function fetchCodeEnforcement(parcelId) {
       case_id: f.attributes.B1_ALT_ID,
       type: f.attributes.B1_PER_TYPE,
       subtype: f.attributes.B1_PER_SUB_TYPE,
+      category: f.attributes.B1_PER_CATEGORY,
       status: f.attributes.B1_APPL_STATUS,
       filed_date: f.attributes.B1_FILE_DD,
       last_insp_date: f.attributes.INSP_LAST_DATE,

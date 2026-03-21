@@ -1165,7 +1165,6 @@ async function handleInspectorClick(e) {
     currentInspectorNeighbors = neighbors;
     current311Reports = reports311;
     currentCodeEnforcement = codeEnf;
-    log(`CodeEnf: available=${codeEnf.available} count=${codeEnf.entries?.length} parcel=${parcel.parcel_id} error=${codeEnf.error || 'none'}`, codeEnf.available ? 'info' : 'warn');
 
     // Draw neighbor parcels
     for (const n of neighbors) {
@@ -1499,13 +1498,15 @@ function renderInspectorPanel() {
       html += `
         <div class="report-card ${statusClass}">
           <span class="expand-icon">▶</span>
-          <div class="report-type">${c.type || 'Unknown Type'}</div>
+          <div class="report-type">${c.type || 'Unknown Type'}${c.category && c.category !== 'NA' && c.category !== 'General' ? ` — ${c.category}` : ''}</div>
           <div class="report-meta">
             ${c.subtype || ''} · ${filedDate}
             <span class="report-status ${statusClass}">${c.status || 'Unknown'}</span>
           </div>
           <div class="details">
             <div class="details-row"><span class="details-label">Case ID</span><span class="details-value">${c.case_id || 'N/A'}</span></div>
+            <div class="details-row"><span class="details-label">Type</span><span class="details-value">${c.type || 'N/A'}</span></div>
+            <div class="details-row"><span class="details-label">Category</span><span class="details-value">${c.category || 'N/A'}</span></div>
             <div class="details-row"><span class="details-label">Address</span><span class="details-value">${c.address || 'N/A'}</span></div>
             ${c.last_insp_date ? `<div class="details-row"><span class="details-label">Last Inspection</span><span class="details-value">${new Date(c.last_insp_date).toLocaleDateString()}</span></div>` : ''}
             ${c.last_insp_result ? `<div class="details-row"><span class="details-label">Result</span><span class="details-value">${c.last_insp_result}</span></div>` : ''}
