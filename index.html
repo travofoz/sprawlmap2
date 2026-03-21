@@ -137,14 +137,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
 
 #handle{text-align:center;padding:4px;cursor:pointer;color:var(--text2);font-size:1.1rem}
 
-/* Inspector Panel - Full Page Overlay */
-#inspector-panel{position:fixed;inset:0;background:var(--bg);z-index:4000;display:none;flex-direction:column}
-#inspector-panel.open{display:flex}
-#inspector-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border)}
-#inspector-header h2{font-size:0.9rem;color:var(--accent);margin:0}
-#inspector-close{background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;padding:4px 8px;line-height:1}
-#inspector-close:hover{color:var(--red)}
-#inspector-content{flex:1;overflow-y:auto;padding:12px}
+/* Inspector tab styles */
 .inspector-section{margin-bottom:16px}
 .inspector-section h3{font-size:0.8rem;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
 .inspector-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -263,11 +256,13 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
   <div id="handle">⌃</div>
   <div id="ptab">
     <div class="tab active" data-tab="parcels">🏛 Parcels</div>
+    <div class="tab" data-tab="inspector">📋 Inspector</div>
     <div class="tab" data-tab="resources">💡 Resources</div>
     <div class="tab" data-tab="ask">🤖 Ask</div>
   </div>
   <div id="pscroll">
     <div id="tab-parcels"><p style="color:#8b949e;font-size:0.8rem">Tap 📍 then 🔍 Search</p></div>
+    <div id="tab-inspector" style="display:none"><p style="color:var(--text2);font-size:0.8rem">Click 📋 to enable inspector, then click a parcel</p></div>
     <div id="tab-resources" style="display:none"><p style="color:#8b949e;font-size:0.8rem">Tap 💡 to load resources</p></div>
     <div id="tab-ask" style="display:none">
       <div id="llm-input">
@@ -324,16 +319,6 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
   </div>
   <button class="btn green" id="saveSettings" style="width:100%;padding:8px;margin-top:8px">Save</button>
   <button class="btn" id="closeSettings" style="width:100%;padding:8px;margin-top:6px">Cancel</button>
-</div>
-
-<div id="inspector-panel">
-  <div id="inspector-header">
-    <h2>📋 Parcel Inspector</h2>
-    <button id="inspector-close">&times;</button>
-  </div>
-  <div id="inspector-content">
-    <p style="color:var(--text2);text-align:center;padding:40px">Click any parcel on the map to inspect</p>
-  </div>
 </div>
 
 <div id="ctx-menu">
@@ -885,7 +870,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => openPanel(t.dat
 function openPanel(tab) {
   document.getElementById('panel').classList.add('open');
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['parcels', 'resources', 'ask'].forEach(id =>
+  ['parcels', 'inspector', 'resources', 'ask'].forEach(id =>
     document.getElementById(`tab-${id}`).style.display = id === tab ? 'block' : 'none'
   );
 }
@@ -1001,20 +986,17 @@ const fmtDate = d => d ? new Date(d).toLocaleDateString() : null;
 function toggleInspectorMode() {
   inspectorMode = !inspectorMode;
   const btn = document.getElementById('inspectorBtn');
-  const panel = document.getElementById('inspector-panel');
 
   if (inspectorMode) {
     btn.classList.add('active');
-    panel.classList.add('open');
-    clearInspector();
-    setStatus('📋 Inspector: Click a parcel to inspect');
-    log('Inspector: mode enabled', 'info');
+    setStatus('📋 Inspector enabled - click a parcel');
+    log('Inspector: enabled', 'info');
+    // DO NOT open any panel - wait for parcel click
   } else {
     btn.classList.remove('active');
-    panel.classList.remove('open');
-    clearInspector();
-    setStatus('Inspector closed');
-    log('Inspector: mode disabled', 'info');
+    inspectorLayerGroup.clearLayers(); // Clear highlights
+    setStatus('Inspector disabled');
+    log('Inspector: disabled', 'info');
   }
 }
 
@@ -1024,7 +1006,7 @@ function clearInspector() {
   currentInspectorParcel = null;
   currentInspectorNeighbors = [];
   current311Reports = [];
-  document.getElementById('inspector-content').innerHTML = '<p style="color:var(--text2);text-align:center;padding:40px">Click any parcel on the map to inspect</p>';
+  // Don't set innerHTML - the tab content stays as-is
 }
 
 // Handle map click in inspector mode
@@ -1087,6 +1069,7 @@ async function handleInspectorClick(e) {
     }
 
     renderInspectorPanel();
+    openPanel('inspector'); // Open bottom panel with inspector tab
     setStatus(`📋 ${parcel.address || parcel.parcel_id}`);
     log(`Inspector: loaded parcel ${parcel.parcel_id}`, 'success');
 
@@ -1111,7 +1094,7 @@ function renderInspectorPanel() {
   const p = currentInspectorParcel;
   if (!p) return;
 
-  const el = document.getElementById('inspector-content');
+  const el = document.getElementById('tab-inspector');
 
   // Build HTML sections
   let html = '';
@@ -1388,12 +1371,6 @@ function renderInspectorPanel() {
 
 // Wire up inspector events
 document.getElementById('inspectorBtn').onclick = toggleInspectorMode;
-document.getElementById('inspector-close').onclick = () => {
-  inspectorMode = false;
-  document.getElementById('inspectorBtn').classList.remove('active');
-  document.getElementById('inspector-panel').classList.remove('open');
-  clearInspector();
-};
 
 // Map click handler for inspector
 map.on('click', handleInspectorClick);
