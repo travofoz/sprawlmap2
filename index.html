@@ -453,7 +453,7 @@ let inspectorLayerGroup = L.layerGroup().addTo(map);
 let currentInspectorParcel = null;
 let currentInspectorNeighbors = [];
 let current311Reports = [];
-let currentCodeEnforcement = [];
+let currentCodeEnforcement = { available: false, entries: [] };
 
 // Filter state
 let enabledClasses = ['640','605']; // default: Municipal + Land Bank
@@ -1458,7 +1458,7 @@ function renderInspectorPanel() {
   // === CODE ENFORCEMENT ===
   html += `
     <div class="inspector-section">
-      <h3>🔨 Code Enforcement (${currentCodeEnforcement.entries?.length || 0})</h3>
+      <h3>🔨 Code Enforcement (${currentCodeEnforcement.entries.length || 0})</h3>
   `;
 
   if (!currentCodeEnforcement.available) {
