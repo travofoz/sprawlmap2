@@ -514,11 +514,12 @@ export async function findParcelAtPoint(lat, lon) {
   });
 
   const url = `${FC}?${p}`;
-  console.log('Inspector API URL:', url);
   const r = await fetch(url);
   const d = await r.json();
-  console.log('Inspector API response:', d);
-  if (d.error) throw new Error(d.error.message);
+  if (d.error) {
+    const errMsg = `ArcGIS error: ${d.error.message} (code ${d.error.code})`;
+    throw new Error(errMsg + ` | URL: ${url.slice(0,150)}...`);
+  }
 
   if (!d.features || d.features.length === 0) return null;
 

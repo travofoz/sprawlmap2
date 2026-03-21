@@ -1021,7 +1021,9 @@ async function handleInspectorClick(e) {
 
   try {
     // Fetch parcel data
+    log(`Inspector: calling findParcelAtPoint...`, 'info');
     const parcel = await findParcelAtPoint(lat, lon);
+    log(`Inspector: got result: ${parcel ? 'parcel found' : 'null'}`, 'info');
     if (!parcel) {
       setStatus('⚠️ No parcel found at this location');
       log('Inspector: no parcel found', 'warn');
@@ -1075,8 +1077,8 @@ async function handleInspectorClick(e) {
 
   } catch (err) {
     setStatus('❌ Error loading parcel');
-    log(`Inspector: ${err.message}`, 'error');
-    console.error(err);
+    log(`Inspector error: ${err.message}`, 'error');
+    log(`Stack: ${err.stack?.slice(0,200)}`, 'error');
   }
 }
 
