@@ -687,6 +687,7 @@ export async function fetchCodeEnforcement(parcelId) {
   if (!parcelId) return { available: false, entries: [] };
 
   const cleanParcelId = parcelId.replace(/-/g, '');
+  console.log('Code Enforcement: querying parcel', cleanParcelId);
 
   try {
     const params = new URLSearchParams({
@@ -698,8 +699,12 @@ export async function fetchCodeEnforcement(parcelId) {
       f: 'json'
     });
 
-    const response = await fetch(`${CODE_ENF}?${params}`);
+    const url = `${CODE_ENF}?${params}`;
+    console.log('Code Enforcement: fetching', url);
+    const response = await fetch(url);
+    console.log('Code Enforcement: response status', response.status);
     const data = await response.json();
+    console.log('Code Enforcement: data', data);
 
     if (data.error) {
       console.warn('Code Enforcement query error:', data.error);
