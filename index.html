@@ -20,14 +20,14 @@ html{font-size:16px}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 #bar{display:flex;align-items:center;gap:4px;padding:6px;background:var(--bg2);border-bottom:1px solid var(--border);z-index:1000;flex-wrap:wrap}
 #bar h1{font-size:1rem;font-weight:700;color:var(--accent);margin-right:2px}
-.btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.8rem;cursor:pointer;white-space:nowrap}
+.btn{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.8rem;cursor:pointer;white-space:nowrap;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn:active,.btn.active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
 .btn.green{border-color:var(--green);color:var(--green)}
 .btn.sm{padding:2px 6px;font-size:0.7rem}
 #status{font-size:0.7rem;color:var(--text2);padding:2px 8px;background:var(--bg);border-bottom:1px solid var(--bg3)}
 #log{height:54px;overflow-y:scroll;background:var(--bg);border-bottom:1px solid var(--border);font-size:0.65rem;padding:2px 6px;font-family:monospace}
 #log:empty{display:none}
-#map{flex:1}
+#map{flex:1;min-height:200px}
 
 /* Filters panel */
 #filters-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px;display:none;z-index:2500;max-height:50dvh;overflow-y:auto}
@@ -419,22 +419,37 @@ import {
   getClassInfo
 } from './api.js';
 
+// Early error handler
+window.onerror = (msg, src, line) => { alert(`Error L${line}: ${msg}`); return false; };
+window.addEventListener('unhandledrejection', e => alert('Async error: ' + (e.reason?.message || e.reason)));
+
 // Logger
 function log(msg, type = 'info') {
   const el = document.getElementById('log');
+  if (!el) { console.log(msg); return; }
   const colors = { info: '#8b949e', error: '#f85149', success: '#3fb950', warn: '#eab308' };
   const icons = { info: '•', error: '✗', success: '✓', warn: '!' };
   const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
   el.innerHTML += `<div style="color:${colors[type]}">${icons[type]} ${time} ${msg}</div>`;
   el.scrollTop = el.scrollHeight;
 }
-window.onerror = (msg, src, line) => { log(`L${line}: ${msg}`, 'error'); return false; };
-window.addEventListener('unhandledrejection', e => log(e.reason?.message || e.reason, 'error'));
 
-// Map setup
-const map = L.map('map', {zoomControl: false}).setView([39.9612, -82.9988], 13);
-let currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OSM', maxZoom: 19}).addTo(map);
-L.control.zoom({position: 'topright'}).addTo(map);
+// Verify Leaflet loaded
+if (typeof L === 'undefined') {
+  alert('Leaflet library failed to load. Check your internet connection.');
+  throw new Error('Leaflet not loaded');
+}
+
+// Map setup with error handling
+let map, currentTileLayer;
+try {
+  map = L.map('map', {zoomControl: false}).setView([39.9612, -82.9988], 13);
+  currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OSM', maxZoom: 19}).addTo(map);
+  L.control.zoom({position: 'topright'}).addTo(map);
+} catch (e) {
+  alert('Failed to initialize map: ' + e.message);
+  throw e;
+}
 
 let parcelLayerGroup = L.layerGroup().addTo(map);
 let parcelPolygons = {}; // parcel_id -> polygon
@@ -496,6 +511,13 @@ window.selectNoResFilters = () => {
 
 // Status helper
 function setStatus(s) { document.getElementById('status').innerHTML = s; }
+
+// Safe element getter with logging
+function $(id) {
+  const el = document.getElementById(id);
+  if (!el) log(`Element not found: ${id}`, 'error');
+  return el;
+}
 
 // Build filter grid
 function buildFilterGrid() {
@@ -1503,7 +1525,7 @@ function renderInspectorPanel() {
   if (currentInspectorNeighbors.length === 0) {
     html += `<p style="color:var(--text2);font-size:0.8rem">No adjacent parcels found</p>`;
   } else {
-    html += `<p style="color:var(--text2);font-size:0.7rem;margin-bottom:6px">Tap to zoom, long-press to expand details</p>`;
+    html += `<p style="color:var(--text2);font-size:0.7rem;margin-bottom:6px">Tap card to expand details</p>`;
 
     // Sort neighbors: public entities first, then by risk
     const sortedNeighbors = [...currentInspectorNeighbors].sort((a, b) => {
@@ -1555,45 +1577,14 @@ function renderInspectorPanel() {
     };
   });
 
-  // Add click handlers for neighbor cards (expand/collapse + zoom)
+  // Add click handlers for neighbor cards - simple click to toggle expand
   el.querySelectorAll('.neighbor-card').forEach(card => {
-    let pressTimer;
-    let isLongPress = false;
-
-    const startPress = () => {
-      isLongPress = false;
-      pressTimer = setTimeout(() => {
-        isLongPress = true;
-        card.classList.toggle('expanded');
-      }, 500);
+    card.onclick = (e) => {
+      // If clicking a link, let it through
+      if (e.target.tagName === 'A') return;
+      e.stopPropagation();
+      card.classList.toggle('expanded');
     };
-
-    const endPress = () => {
-      clearTimeout(pressTimer);
-    };
-
-    const handleClick = (e) => {
-      if (isLongPress) {
-        e.preventDefault();
-        return;
-      }
-      // Single click: zoom to neighbor
-      const neighborId = card.dataset.neighborId;
-      const neighbor = currentInspectorNeighbors.find(n => n.parcel_id === neighborId);
-      if (neighbor) {
-        window.panToNeighbor(neighbor);
-      }
-    };
-
-    // Mouse events (desktop)
-    card.onmousedown = startPress;
-    card.onmouseup = card.onmouseleave = endPress;
-    card.onclick = handleClick;
-
-    // Touch events (mobile)
-    card.ontouchstart = (e) => { e.preventDefault(); startPress(); };
-    card.ontouchend = (e) => { endPress(); handleClick(e); };
-    card.ontouchcancel = endPress;
   });
 }
 
@@ -1603,10 +1594,24 @@ document.getElementById('inspectorBtn').onclick = toggleInspectorMode;
 // Map click handler for inspector
 map.on('click', handleInspectorClick);
 
-// Initialize
-buildFilterGrid();
-buildResourceFilterGrid();
-log('Sprawlmap initialized', 'success');
+// Initialize when DOM is ready
+function init() {
+  try {
+    buildFilterGrid();
+    buildResourceFilterGrid();
+    log('Sprawlmap initialized', 'success');
+  } catch (e) {
+    log('Init error: ' + e.message, 'error');
+    alert('Initialization failed: ' + e.message);
+  }
+}
+
+// Run init - DOM is already ready since script is at bottom of body
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 </body>
 </html>
