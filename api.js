@@ -3,7 +3,7 @@ const AUDITOR = 'https://audr-api.franklincountyohio.gov/v1/parcel';
 const OVERPASS= 'https://overpass-api.de/api/interpreter';
 const NOMINATIM='https://nominatim.openstreetmap.org/search';
 const CARD    = 'https://audr-apps.franklincountyohio.gov/Redir/Link/Parcel/';
-const COLUMBUS_311 = 'https://gis.columbus.gov/arcgis/rest/services/Applications/CSIR_Public/MapServer/0/query';
+const COLUMBUS_311 = 'https://gis.columbus.gov/arcgis/rest/services/Applications/Neighborhood/MapServer/7/query';
 const TTL     = 86_400_000;
 
 // CLASSCD codes and their properties (from Franklin County Auditor)
@@ -628,17 +628,65 @@ export async function findAdjacentParcels(geometry, parcelId) {
   return results;
 }
 
-// Fetch 311 data from Columbus CSIR
-// NOTE: The Columbus 311 API endpoint has been discontinued (404)
-// This function returns unavailable until a new data source is found
-export async function fetch311Data(address, lat, lon, radius = 100) {
-  // The original Columbus 311 API at gis.columbus.gov no longer has this layer
-  // Return service unavailable rather than misleading "no reports"
-  return {
-    available: false,
-    serviceDown: true,
-    entries: []
-  };
+// Fetch 311 data from Columbus Neighborhood layer (30-day rolling)
+export async function fetch311Data(address, lat, lon, radiusMeters = 300) {
+  if (!lat || !lon) {
+    return { available: false, entries: [] };
+  }
+
+  try {
+    // Spatial query using bounding box
+    const dLat = radiusMeters / 111000; // ~111km per degree latitude
+    const dLon = radiusMeters / (111000 * Math.cos(lat * Math.PI / 180));
+
+    const bbox = {
+      xmin: lon - dLon,
+      ymin: lat - dLat,
+      xmax: lon + dLon,
+      ymax: lat + dLat,
+      spatialReference: { wkid: 4326 }
+    };
+
+    const params = new URLSearchParams({
+      where: '1=1',
+      geometry: JSON.stringify(bbox),
+      geometryType: 'esriGeometryEnvelope',
+      spatialRel: 'esriSpatialRelIntersects',
+      inSR: '4326',
+      outFields: 'CASE_ID,STATUS,REPORTED_DATE,STATUS_DATE,REQUEST_TYPE,REQUEST_CATEGORY,STREET,CITY,ZIP,LATITUDE,LONGITUDE',
+      orderByFields: 'REPORTED_DATE DESC',
+      resultRecordCount: '50',
+      returnGeometry: 'false',
+      f: 'json'
+    });
+
+    const response = await fetch(`${COLUMBUS_311}?${params}`);
+    const data = await response.json();
+
+    if (data.error) {
+      console.warn('311 query error:', data.error);
+      return { available: false, entries: [] };
+    }
+
+    const entries = (data.features || []).map(f => ({
+      case_id: f.attributes.CASE_ID,
+      type: f.attributes.REQUEST_TYPE,
+      category: f.attributes.REQUEST_CATEGORY,
+      status: f.attributes.STATUS,
+      reported_date: f.attributes.REPORTED_DATE,
+      status_date: f.attributes.STATUS_DATE,
+      street: f.attributes.STREET,
+      city: f.attributes.CITY,
+      zip: f.attributes.ZIP,
+      lat: f.attributes.LATITUDE,
+      lon: f.attributes.LONGITUDE
+    }));
+
+    return { available: true, entries };
+  } catch (e) {
+    console.warn('311 query failed:', e);
+    return { available: false, entries: [] };
+  }
 }
 
 // Tool dispatcher for LLM agents

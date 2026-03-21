@@ -164,6 +164,50 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);hei
 .neighbor-card.avoid,.neighbor-card.high{border-color:var(--red)}
 .neighbor-card .addr{font-size:0.8rem;font-weight:600;color:var(--text)}
 .neighbor-card .meta{font-size:0.7rem;color:var(--text2);margin-top:2px}
+
+/* Pulse animation for selected parcel */
+@keyframes parcel-pulse {
+  0%, 100% {
+    opacity: 1;
+    stroke-width: 3;
+    filter: drop-shadow(0 0 4px rgba(88, 166, 255, 0.8));
+  }
+  50% {
+    opacity: 0.7;
+    stroke-width: 5;
+    filter: drop-shadow(0 0 12px rgba(88, 166, 255, 1));
+  }
+}
+
+/* Flash animation for neighbor highlight */
+@keyframes parcel-flash {
+  0%, 100% { fill-opacity: 0.3; }
+  25% { fill-opacity: 0.6; }
+  50% { fill-opacity: 0.2; }
+  75% { fill-opacity: 0.5; }
+}
+
+.parcels-highlight {
+  animation: parcel-pulse 1.5s ease-in-out infinite;
+}
+
+.parcels-flash {
+  animation: parcel-flash 0.5s ease-in-out 3;
+}
+
+/* Enhanced neighbor card hover */
+.neighbor-card:hover {
+  transform: translateX(4px);
+}
+
+.neighbor-card.selected {
+  box-shadow: 0 0 8px var(--accent);
+  border-width: 3px;
+}
+
+/* Canceled status for 311 reports */
+.report-card.canceled { border-color: var(--text2); }
+.report-status.canceled { background: var(--bg3); color: var(--text2); }
 </style>
 </head>
 <body>
@@ -1032,15 +1076,16 @@ async function handleInspectorClick(e) {
 
     currentInspectorParcel = parcel;
 
-    // Highlight selected parcel
+    // Highlight selected parcel with pulse animation
     inspectorLayerGroup.clearLayers();
     if (parcel.geometry) {
       const coords = parcel.geometry.coordinates[0].map(c => [c[1], c[0]]);
       L.polygon(coords, {
-        color: parcel.class_color,
+        color: '#58a6ff',
         fillColor: parcel.class_color,
         fillOpacity: 0.4,
-        weight: 3
+        weight: 3,
+        className: 'parcels-highlight'
       }).addTo(inspectorLayerGroup);
     }
 
@@ -1062,8 +1107,7 @@ async function handleInspectorClick(e) {
           color: classInfo.color,
           fillColor: classInfo.color,
           fillOpacity: 0.2,
-          weight: 1,
-          dashArray: n.isAcrossStreet ? '5,5' : null
+          weight: 1
         })
         .on('click', () => panToNeighbor(n))
         .addTo(inspectorLayerGroup);
@@ -1082,12 +1126,24 @@ async function handleInspectorClick(e) {
   }
 }
 
-// Pan to neighbor parcel
+// Pan to neighbor parcel with flash animation
 window.panToNeighbor = function(neighbor) {
   if (neighbor && neighbor.geometry) {
     const coords = neighbor.geometry.coordinates[0].map(c => [c[1], c[0]]);
     const bounds = L.latLngBounds(coords);
-    map.fitBounds(bounds, { maxZoom: 17 });
+    map.fitBounds(bounds, { maxZoom: 17, padding: [20, 20] });
+
+    // Flash the neighbor polygon
+    const flashLayer = L.polygon(coords, {
+      color: '#58a6ff',
+      fillColor: '#58a6ff',
+      fillOpacity: 0.4,
+      weight: 3,
+      className: 'parcels-flash'
+    }).addTo(inspectorLayerGroup);
+
+    // Remove flash after animation
+    setTimeout(() => inspectorLayerGroup.removeLayer(flashLayer), 1500);
   }
 };
 
@@ -1303,22 +1359,27 @@ function renderInspectorPanel() {
   `;
 
   if (current311Reports.serviceDown) {
-    html += `<p style="color:var(--text2);font-size:0.8rem">⚠️ Columbus 311 API unavailable - service discontinued</p>`;
+    html += `<p style="color:var(--text2);font-size:0.8rem">Columbus 311 API unavailable - service discontinued</p>`;
   } else if (!current311Reports.available) {
     html += `<p style="color:var(--text2);font-size:0.8rem">No 311 data available for this location</p>`;
   } else if (current311Reports.entries.length === 0) {
-    html += `<p style="color:var(--green);font-size:0.8rem">✓ No service requests on file</p>`;
+    html += `<p style="color:var(--green);font-size:0.8rem">No service requests in 300m radius (30-day window)</p>`;
   } else {
-    html += `<p style="color:var(--text2);font-size:0.7rem;margin-bottom:6px">${current311Reports.entries.length} reports</p>`;
+    html += `<p style="color:var(--text2);font-size:0.7rem;margin-bottom:6px">${current311Reports.entries.length} service requests (30-day window)</p>`;
+
     for (const r of current311Reports.entries) {
-      const statusClass = r.status?.toLowerCase().includes('closed') ? 'closed' : 'open';
+      const statusClass = r.status?.toLowerCase().includes('closed') ? 'closed' :
+                          r.status?.toLowerCase().includes('cancel') ? 'canceled' : 'open';
+      const dateStr = r.reported_date ? new Date(r.reported_date).toLocaleDateString() : 'Unknown';
+
       html += `
         <div class="report-card ${statusClass}">
           <div class="report-type">${r.type || 'Unknown Request'}</div>
           <div class="report-meta">
-            ${r.date || 'Unknown date'}
+            ${r.category ? `<span style="color:var(--text2)">${r.category}</span> · ` : ''}
+            ${dateStr}
             <span class="report-status ${statusClass}">${r.status || 'Unknown'}</span>
-            ${r.case_id ? `<span style="margin-left:4px">#${r.case_id}</span>` : ''}
+            ${r.case_id ? `<span style="margin-left:4px;color:var(--text2)">#${r.case_id.slice(-8)}</span>` : ''}
           </div>
         </div>
       `;
@@ -1351,7 +1412,7 @@ function renderInspectorPanel() {
           <div class="addr">${n.address || n.parcel_id}</div>
           <div class="meta">
             <span class="badge ${n.risk || 'med'}" style="font-size:0.6rem">${n.risk_text || riskText(n.risk)}</span>
-            ${n.class_label} · ${n.isAcrossStreet ? 'Across street' : 'Adjacent'}
+            ${n.class_label}
             ${n.owner ? `<br>${n.owner.slice(0, 30)}${n.owner.length > 30 ? '...' : ''}` : ''}
           </div>
         </div>
