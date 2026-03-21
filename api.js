@@ -4,6 +4,7 @@ const OVERPASS= 'https://overpass-api.de/api/interpreter';
 const NOMINATIM='https://nominatim.openstreetmap.org/search';
 const CARD    = 'https://audr-apps.franklincountyohio.gov/Redir/Link/Parcel/';
 const COLUMBUS_311 = 'https://gis.columbus.gov/arcgis/rest/services/Applications/Neighborhood/MapServer/7/query';
+const CODE_ENF = 'https://maps2.columbus.gov/arcgis/rest/services/Schemas/BuildingZoning/MapServer/23/query';
 const TTL     = 86_400_000;
 
 // CLASSCD codes and their properties (from Franklin County Auditor)
@@ -553,41 +554,33 @@ export async function findParcelAtPoint(lat, lon) {
   };
 }
 
-// Find adjacent and across-street parcels
+// Find adjacent parcels using true boundary-based intersection
 export async function findAdjacentParcels(geometry, parcelId) {
   if (!geometry || !geometry.coordinates || !geometry.coordinates[0]) {
     return [];
   }
 
-  // Get centroid of the parcel for distance-based query
-  const centroid = getCentroid(geometry);
-  if (!centroid) return [];
-
   const outFields = 'PARCELID,OWNERNME1,CLASSCD,CLASSDSCRP,SITEADDRESS,ACRES,TOTVALUEBASE,SALEDATE';
 
   const results = [];
-  const seenIds = new Set([parcelId]);
 
-  // Use distance-based query (50m radius for adjacent parcels)
   try {
-    const geo = JSON.stringify({
-      x: centroid.lon,
-      y: centroid.lat,
+    // Convert GeoJSON polygon to EsriJSON format
+    const esriGeometry = {
+      rings: geometry.coordinates,
       spatialReference: { wkid: 4326 }
-    });
+    };
 
     const params = new URLSearchParams({
       where: `PARCELID <> '${parcelId}'`,
-      geometry: geo,
-      geometryType: 'esriGeometryPoint',
+      geometry: JSON.stringify(esriGeometry),
+      geometryType: 'esriGeometryPolygon',
       spatialRel: 'esriSpatialRelIntersects',
-      distance: 50,
-      units: 'esriSRUnit_Meter',
       inSR: 4326,
       outFields,
       returnGeometry: 'true',
       outSR: '4326',
-      resultRecordCount: 30,
+      resultRecordCount: 50,
       f: 'geojson'
     });
 
@@ -597,28 +590,21 @@ export async function findAdjacentParcels(geometry, parcelId) {
     if (data.features) {
       for (const f of data.features) {
         const pid = f.properties.PARCELID;
-        if (!seenIds.has(pid)) {
-          seenIds.add(pid);
-          const classInfo = getClassInfo(f.properties.CLASSCD);
-          // Calculate distance from centroid to determine if across street
-          const neighborCentroid = f.geometry ? getCentroid(f.geometry) : null;
-          const dist = neighborCentroid ? distMiles(centroid.lat, centroid.lon, neighborCentroid.lat, neighborCentroid.lon) * 1609.34 : 999;
-          results.push({
-            parcel_id: pid,
-            address: f.properties.SITEADDRESS,
-            owner: f.properties.OWNERNME1,
-            classcd: f.properties.CLASSCD,
-            class_label: classInfo.label,
-            class_desc: f.properties.CLASSDSCRP,
-            risk: classInfo.risk,
-            risk_text: riskText(classInfo.risk),
-            acres: f.properties.ACRES,
-            appraised: f.properties.TOTVALUEBASE,
-            last_sale_year: f.properties.SALEDATE ? new Date(f.properties.SALEDATE).getFullYear() : null,
-            isAcrossStreet: dist > 20, // More than 20m = across street
-            geometry: f.geometry
-          });
-        }
+        const classInfo = getClassInfo(f.properties.CLASSCD);
+        results.push({
+          parcel_id: pid,
+          address: f.properties.SITEADDRESS,
+          owner: f.properties.OWNERNME1,
+          classcd: f.properties.CLASSCD,
+          class_label: classInfo.label,
+          class_desc: f.properties.CLASSDSCRP,
+          risk: classInfo.risk,
+          risk_text: riskText(classInfo.risk),
+          acres: f.properties.ACRES,
+          appraised: f.properties.TOTVALUEBASE,
+          last_sale_year: f.properties.SALEDATE ? new Date(f.properties.SALEDATE).getFullYear() : null,
+          geometry: f.geometry
+        });
       }
     }
   } catch (e) {
@@ -653,7 +639,7 @@ export async function fetch311Data(address, lat, lon, radiusMeters = 300) {
       geometryType: 'esriGeometryEnvelope',
       spatialRel: 'esriSpatialRelIntersects',
       inSR: '4326',
-      outFields: 'CASE_ID,STATUS,REPORTED_DATE,STATUS_DATE,REQUEST_TYPE,REQUEST_CATEGORY,REQUEST_SUBCATEGORY,STREET,CITY,ZIP,LATITUDE,LONGITUDE,DEPARTMENT_NAME,DIVISION_NAME,TEAM_NAME',
+      outFields: 'CASE_ID,STATUS,REPORTED_DATE,STATUS_DATE,REQUEST_TYPE,REQUEST_CATEGORY,REQUEST_SUBCATEGORY,STREET,CITY,ZIP,LATITUDE,LONGITUDE,DEPARTMENT_NAME,DIVISION_NAME,TEAM_NAME,SECTION_NAME,COUNCILDISTRICT,REQUEST_MODIFIED',
       orderByFields: 'REPORTED_DATE DESC',
       resultRecordCount: '50',
       returnGeometry: 'false',
@@ -683,12 +669,56 @@ export async function fetch311Data(address, lat, lon, radiusMeters = 300) {
       lon: f.attributes.LONGITUDE,
       department: f.attributes.DEPARTMENT_NAME,
       division: f.attributes.DIVISION_NAME,
-      team: f.attributes.TEAM_NAME
+      team: f.attributes.TEAM_NAME,
+      section: f.attributes.SECTION_NAME,
+      council_district: f.attributes.COUNCILDISTRICT,
+      modified_date: f.attributes.REQUEST_MODIFIED
     }));
 
     return { available: true, entries };
   } catch (e) {
     console.warn('311 query failed:', e);
+    return { available: false, entries: [] };
+  }
+}
+
+// Fetch Code Enforcement cases for a parcel
+export async function fetchCodeEnforcement(parcelId) {
+  if (!parcelId) return { available: false, entries: [] };
+
+  try {
+    const params = new URLSearchParams({
+      where: `B1_PARCEL_NBR = '${parcelId}'`,
+      outFields: 'B1_ALT_ID,B1_PER_TYPE,B1_PER_SUB_TYPE,B1_APPL_STATUS,B1_FILE_DD,INSP_LAST_DATE,INSP_LAST_RESULT,SITE_ADDRESS,ACA_URL',
+      orderByFields: 'B1_FILE_DD DESC',
+      resultRecordCount: '25',
+      returnGeometry: 'false',
+      f: 'json'
+    });
+
+    const response = await fetch(`${CODE_ENF}?${params}`);
+    const data = await response.json();
+
+    if (data.error) {
+      console.warn('Code Enforcement query error:', data.error);
+      return { available: false, entries: [] };
+    }
+
+    const entries = (data.features || []).map(f => ({
+      case_id: f.attributes.B1_ALT_ID,
+      type: f.attributes.B1_PER_TYPE,
+      subtype: f.attributes.B1_PER_SUB_TYPE,
+      status: f.attributes.B1_APPL_STATUS,
+      filed_date: f.attributes.B1_FILE_DD,
+      last_insp_date: f.attributes.INSP_LAST_DATE,
+      last_insp_result: f.attributes.INSP_LAST_RESULT,
+      address: f.attributes.SITE_ADDRESS,
+      url: f.attributes.ACA_URL
+    }));
+
+    return { available: true, entries };
+  } catch (e) {
+    console.warn('Code Enforcement query failed:', e);
     return { available: false, entries: [] };
   }
 }

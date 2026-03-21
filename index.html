@@ -412,6 +412,7 @@ import {
   findParcelAtPoint,
   findAdjacentParcels,
   fetch311Data,
+  fetchCodeEnforcement,
   CLASS_CODES,
   RESOURCE_TYPES,
   riskText,
@@ -452,6 +453,7 @@ let inspectorLayerGroup = L.layerGroup().addTo(map);
 let currentInspectorParcel = null;
 let currentInspectorNeighbors = [];
 let current311Reports = [];
+let currentCodeEnforcement = [];
 
 // Filter state
 let enabledClasses = ['640','605']; // default: Municipal + Land Bank
@@ -1131,14 +1133,16 @@ async function handleInspectorClick(e) {
       pulseAnimation();
     }
 
-    // Fetch neighbors and 311 data in parallel
-    const [neighbors, reports311] = await Promise.all([
+    // Fetch neighbors, 311, and code enforcement data in parallel
+    const [neighbors, reports311, codeEnf] = await Promise.all([
       findAdjacentParcels(parcel.geometry, parcel.parcel_id),
-      fetch311Data(parcel.address, parcel.centroid?.lat || lat, parcel.centroid?.lon || lon)
+      fetch311Data(parcel.address, parcel.centroid?.lat || lat, parcel.centroid?.lon || lon),
+      fetchCodeEnforcement(parcel.parcel_id)
     ]);
 
     currentInspectorNeighbors = neighbors;
     current311Reports = reports311;
+    currentCodeEnforcement = codeEnf;
 
     // Draw neighbor parcels
     for (const n of neighbors) {
@@ -1451,6 +1455,45 @@ function renderInspectorPanel() {
   }
   html += `</div>`;
 
+  // === CODE ENFORCEMENT ===
+  html += `
+    <div class="inspector-section">
+      <h3>🔨 Code Enforcement (${currentCodeEnforcement.entries?.length || 0})</h3>
+  `;
+
+  if (!currentCodeEnforcement.available) {
+    html += `<p style="color:var(--text2);font-size:0.8rem">No code enforcement data available</p>`;
+  } else if (currentCodeEnforcement.entries.length === 0) {
+    html += `<p style="color:var(--green);font-size:0.8rem">No enforcement cases on file</p>`;
+  } else {
+    html += `<p style="color:var(--text2);font-size:0.7rem;margin-bottom:6px">Historical cases — tap to expand</p>`;
+
+    for (const c of currentCodeEnforcement.entries) {
+      const statusClass = c.status?.toLowerCase().includes('closed') ? 'closed' :
+                          c.status?.toLowerCase().includes('open') ? 'open' : 'med';
+      const filedDate = c.filed_date ? new Date(c.filed_date).toLocaleDateString() : 'Unknown';
+
+      html += `
+        <div class="report-card ${statusClass}">
+          <span class="expand-icon">▶</span>
+          <div class="report-type">${c.type || 'Unknown Type'}</div>
+          <div class="report-meta">
+            ${c.subtype || ''} · ${filedDate}
+            <span class="report-status ${statusClass}">${c.status || 'Unknown'}</span>
+          </div>
+          <div class="details">
+            <div class="details-row"><span class="details-label">Case ID</span><span class="details-value">${c.case_id || 'N/A'}</span></div>
+            <div class="details-row"><span class="details-label">Address</span><span class="details-value">${c.address || 'N/A'}</span></div>
+            ${c.last_insp_date ? `<div class="details-row"><span class="details-label">Last Inspection</span><span class="details-value">${new Date(c.last_insp_date).toLocaleDateString()}</span></div>` : ''}
+            ${c.last_insp_result ? `<div class="details-row"><span class="details-label">Result</span><span class="details-value">${c.last_insp_result}</span></div>` : ''}
+            ${c.url ? `<div style="margin-top:6px"><a href="${c.url}" target="_blank" class="inspector-link">View Full Case →</a></div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+  }
+  html += `</div>`;
+
   // === NEIGHBOR PARCELS ===
   html += `
     <div class="inspector-section">
@@ -1517,7 +1560,7 @@ function renderInspectorPanel() {
     let pressTimer;
     let isLongPress = false;
 
-    card.onmousedown = () => {
+    const startPress = () => {
       isLongPress = false;
       pressTimer = setTimeout(() => {
         isLongPress = true;
@@ -1525,11 +1568,11 @@ function renderInspectorPanel() {
       }, 500);
     };
 
-    card.onmouseup = card.onmouseleave = () => {
+    const endPress = () => {
       clearTimeout(pressTimer);
     };
 
-    card.onclick = (e) => {
+    const handleClick = (e) => {
       if (isLongPress) {
         e.preventDefault();
         return;
@@ -1541,6 +1584,16 @@ function renderInspectorPanel() {
         window.panToNeighbor(neighbor);
       }
     };
+
+    // Mouse events (desktop)
+    card.onmousedown = startPress;
+    card.onmouseup = card.onmouseleave = endPress;
+    card.onclick = handleClick;
+
+    // Touch events (mobile)
+    card.ontouchstart = (e) => { e.preventDefault(); startPress(); };
+    card.ontouchend = (e) => { endPress(); handleClick(e); };
+    card.ontouchcancel = endPress;
   });
 }
 
