@@ -686,9 +686,11 @@ export async function fetch311Data(address, lat, lon, radiusMeters = 300) {
 export async function fetchCodeEnforcement(parcelId) {
   if (!parcelId) return { available: false, entries: [] };
 
+  const cleanParcelId = parcelId.replace(/-/g, '');
+
   try {
     const params = new URLSearchParams({
-      where: `B1_PARCEL_NBR = '${parcelId}'`,
+      where: `B1_PARCEL_NBR = '${cleanParcelId}'`,
       outFields: 'B1_ALT_ID,B1_PER_TYPE,B1_PER_SUB_TYPE,B1_APPL_STATUS,B1_FILE_DD,INSP_LAST_DATE,INSP_LAST_RESULT,SITE_ADDRESS,ACA_URL',
       orderByFields: 'B1_FILE_DD DESC',
       resultRecordCount: '25',
