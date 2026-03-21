@@ -687,7 +687,6 @@ export async function fetchCodeEnforcement(parcelId) {
   if (!parcelId) return { available: false, entries: [] };
 
   const cleanParcelId = parcelId.replace(/-/g, '');
-  console.log('Code Enforcement: querying parcel', cleanParcelId);
 
   try {
     const params = new URLSearchParams({
@@ -700,15 +699,14 @@ export async function fetchCodeEnforcement(parcelId) {
     });
 
     const url = `${CODE_ENF}?${params}`;
-    console.log('Code Enforcement: fetching', url);
     const response = await fetch(url);
-    console.log('Code Enforcement: response status', response.status);
+    if (!response.ok) {
+      return { available: false, entries: [], error: `HTTP ${response.status}` };
+    }
     const data = await response.json();
-    console.log('Code Enforcement: data', data);
 
     if (data.error) {
-      console.warn('Code Enforcement query error:', data.error);
-      return { available: false, entries: [] };
+      return { available: false, entries: [], error: data.error.message || JSON.stringify(data.error) };
     }
 
     const entries = (data.features || []).map(f => ({
@@ -725,8 +723,7 @@ export async function fetchCodeEnforcement(parcelId) {
 
     return { available: true, entries };
   } catch (e) {
-    console.warn('Code Enforcement query failed:', e);
-    return { available: false, entries: [] };
+    return { available: false, entries: [], error: e.message };
   }
 }
 

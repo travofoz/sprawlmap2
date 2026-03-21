@@ -1165,6 +1165,7 @@ async function handleInspectorClick(e) {
     currentInspectorNeighbors = neighbors;
     current311Reports = reports311;
     currentCodeEnforcement = codeEnf;
+    log(`CodeEnf: available=${codeEnf.available} count=${codeEnf.entries?.length} parcel=${parcel.parcel_id} error=${codeEnf.error || 'none'}`, codeEnf.available ? 'info' : 'warn');
 
     // Draw neighbor parcels
     for (const n of neighbors) {
