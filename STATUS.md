@@ -1,7 +1,7 @@
 # Sprawlmap v2 Refactor Status
 
 **Branch:** `refactor/sprawlmap2-v2`
-**Last Commit:** `1561994` - "Refactor: modularize into ES modules"
+**Last Commit:** `edb03ef` - "Add STATUS.md for refactor handoff"
 
 ---
 
