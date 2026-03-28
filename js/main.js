@@ -4,7 +4,7 @@ import { log, setStatus, $ } from './utils.js';
 import { initMap, getMap } from './map.js';
 import { findPublicParcels, sortParcels } from './api/parcels.js';
 import { findNearbyResources } from './api/resources.js';
-import { bestAvailable } from './providers.js';
+import { bestAvailable } from '../providers.js';
 
 import { buildFilterGrid, buildResourceFilterGrid, selectAllFilters, selectNoFilters, selectRecommended, selectAllResFilters, selectNoResFilters } from './ui/filters.js';
 import { openPanel, togglePanel, toggleLegend } from './ui/panels.js';
