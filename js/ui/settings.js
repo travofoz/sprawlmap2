@@ -1,4 +1,4 @@
-import { PROVIDERS, saveKey, loadKey, bestAvailable } from '../providers.js';
+import { PROVIDERS, saveKey, loadKey, bestAvailable } from '../../providers.js';
 import { MAP_STYLES } from '../config.js';
 import { switchTileLayer } from '../map.js';
 import { log, setStatus } from '../utils.js';

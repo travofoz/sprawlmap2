@@ -157,6 +157,7 @@ function wireEvents() {
   document.getElementById('applySearch')?.addEventListener('click', searchParcels);
   document.getElementById('resBtn')?.addEventListener('click', searchResources);
   document.getElementById('inspectorBtn')?.addEventListener('click', toggleInspectorMode);
+  document.getElementById('askBtn')?.addEventListener('click', () => { openPanel('ask'); document.getElementById('panel')?.classList.add('open'); });
   document.getElementById('settingsBtn')?.addEventListener('click', openSettings);
   document.getElementById('closeSettings')?.addEventListener('click', closeSettings);
   document.getElementById('saveSettings')?.addEventListener('click', saveSettings);
