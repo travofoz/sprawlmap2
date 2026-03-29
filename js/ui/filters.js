@@ -51,17 +51,15 @@ export function buildResourceCategoryFilters() {
       row.className = 'resource-type-row';
       row.dataset.type = type;
 
-      const radiusOptions = RADIUS_OPTIONS.map(r => 
-        `<option value="${r}" ${settings.radius === r ? 'selected' : ''}>${r} mi</option>`
-      ).join('');
-
       row.innerHTML = `
         <label class="resource-checkbox">
           <input type="checkbox" data-type="${type}" ${settings.enabled ? 'checked' : ''}>
           <span class="resource-icon">${typeInfo.icon}</span>
           <span class="resource-label">${typeInfo.label}</span>
         </label>
-        <select class="resource-radius" data-type="${type}">${radiusOptions}</select>
+        <input type="range" class="resource-radius" data-type="${type}" 
+          min="0.25" max="5" step="0.25" value="${settings.radius || 0}">
+        <span class="resource-radius-val" data-type="${type}">${settings.radius || 1} mi</span>
         <button class="btn sm resource-load" data-type="${type}">Load</button>
         <span class="resource-status" data-type="${type}">${settings.loaded ? '✅ ' + settings.count : '—'}</span>
       `;
@@ -100,7 +98,9 @@ function wireResourceFilterEvents() {
     }
     
     if (el.classList.contains('resource-radius')) {
-      el.onchange = () => {
+      el.oninput = () => {
+        const valEl = document.querySelector(`.resource-radius-val[data-type="${type}"]`);
+        if (valEl) valEl.textContent = el.value + ' mi';
         setResourceSettings(type, { radius: parseFloat(el.value) });
       };
     }
