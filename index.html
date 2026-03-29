@@ -13,7 +13,6 @@
   <h1>Sprawlmap</h1>
   <button class="btn" id="locBtn" title="Get GPS Location">📍</button>
   <button class="btn green" id="searchBtn" title="Search Parcels">🔍</button>
-  <button class="btn" id="filterBtn" title="Filters">🎛️</button>
   <button class="btn" id="resBtn" title="Resources">💡</button>
   <button class="btn" id="inspectorBtn" title="Parcel Inspector">📋</button>
   <button class="btn" id="askBtn" title="Ask AI">🤖</button>
@@ -21,55 +20,6 @@
 </div>
 
 <div id="log"></div>
-
-<div id="filters-panel">
-  <h3>Search Radius</h3>
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <input type="range" id="radiusSlider" min="0.25" max="5" step="0.25" value="0.5" style="flex:1">
-    <span id="radiusVal" style="min-width:3.5rem;text-align:right">0.5 mi</span>
-  </div>
-
-  <h3>Sort Results By</h3>
-  <div style="margin-bottom:8px">
-    <select id="sortSel">
-      <optgroup label="Distance">
-        <option value="distance">Nearest First</option>
-        <option value="distance-desc">Farthest First</option>
-      </optgroup>
-      <optgroup label="Risk Level">
-        <option value="risk" selected>Safest First (LOW→HIGH)</option>
-        <option value="risk-desc">Riskiest First (HIGH→LOW)</option>
-      </optgroup>
-      <optgroup label="Size">
-        <option value="acres">Largest First</option>
-        <option value="acres-asc">Smallest First</option>
-      </optgroup>
-      <optgroup label="Property Info">
-        <option value="class">Class Code (A→Z)</option>
-        <option value="owner">Owner (A→Z)</option>
-      </optgroup>
-    </select>
-  </div>
-
-  <h3>Filter by Property Class</h3>
-  <div class="filter-grid" id="filterGrid"></div>
-  <div class="filter-actions">
-    <button class="btn sm">All</button>
-    <button class="btn sm">None</button>
-    <button class="btn sm">Recommended</button>
-  </div>
-
-  <h3 style="margin-top:12px">Filter by Resource Type</h3>
-  <div class="filter-grid" id="resourceFilterGrid"></div>
-  <div class="filter-actions">
-    <button class="btn sm">All</button>
-    <button class="btn sm">None</button>
-  </div>
-
-  <div style="margin-top:12px">
-    <button class="btn green" id="applySearch" style="width:100%">Apply Search</button>
-  </div>
-</div>
 
 <div id="status">Tap 📍 for GPS, then 🔍 Search</div>
 <div id="map"></div>
@@ -95,9 +45,68 @@
     <div class="tab" data-tab="ask">🤖 Ask</div>
   </div>
   <div id="pscroll">
-    <div id="tab-parcels"><p style="color:#8b949e;font-size:0.8rem">Tap 📍 then 🔍 Search</p></div>
-    <div id="tab-inspector" style="display:none"><p style="color:var(--text2);font-size:0.8rem">Click 📋 to enable inspector, then click a parcel</p></div>
-    <div id="tab-resources" style="display:none"><p style="color:#8b949e;font-size:0.8rem">Tap 💡 to load resources</p></div>
+    <div id="tab-parcels">
+      <div class="parcel-filters">
+        <h3>Search Radius</h3>
+        <div class="radius-row">
+          <input type="range" id="radiusSlider" min="0.25" max="5" step="0.25" value="0.5">
+          <span id="radiusVal">0.5 mi</span>
+        </div>
+        
+        <h3>Sort Results By</h3>
+        <select id="sortSel">
+          <optgroup label="Distance">
+            <option value="distance">Nearest First</option>
+            <option value="distance-desc">Farthest First</option>
+          </optgroup>
+          <optgroup label="Risk Level">
+            <option value="risk" selected>Safest First (LOW→HIGH)</option>
+            <option value="risk-desc">Riskiest First (HIGH→LOW)</option>
+          </optgroup>
+          <optgroup label="Size">
+            <option value="acres">Largest First</option>
+            <option value="acres-asc">Smallest First</option>
+          </optgroup>
+          <optgroup label="Property Info">
+            <option value="class">Class Code (A→Z)</option>
+            <option value="owner">Owner (A→Z)</option>
+          </optgroup>
+        </select>
+        
+        <h3>Filter by Property Class</h3>
+        <div class="filter-grid" id="filterGrid"></div>
+        <div class="filter-actions">
+          <button class="btn sm" id="selectAllClasses">All</button>
+          <button class="btn sm" id="selectNoClasses">None</button>
+          <button class="btn sm" id="selectRecommended">Recommended</button>
+        </div>
+        
+        <div class="parcel-results" id="parcelResults">
+          <p style="color:#8b949e;font-size:0.8rem">Tap 📍 then 🔍 Search</p>
+        </div>
+      </div>
+    </div>
+    
+    <div id="tab-inspector" style="display:none">
+      <p style="color:var(--text2);font-size:0.8rem">Click 📋 to enable inspector, then click a parcel</p>
+      <div id="inspector-content"></div>
+    </div>
+    
+    <div id="tab-resources" style="display:none">
+      <div class="resource-filters">
+        <div id="resourceCategories"></div>
+        
+        <div class="resource-global-actions">
+          <button class="btn green" id="loadAllResources">Load All Checked Types</button>
+          <button class="btn" id="clearAllResources">Clear All Markers</button>
+        </div>
+        
+        <div class="resource-results" id="resourceResults">
+          <p style="color:#8b949e;font-size:0.8rem">Check resource types and click Load</p>
+        </div>
+      </div>
+    </div>
+    
     <div id="tab-ask" style="display:none">
       <div id="llm-input">
         <textarea id="q" placeholder="Public land near laundromat and bus?"></textarea>

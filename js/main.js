@@ -1,12 +1,23 @@
-import { state } from './state.js';
-import { RESOURCE_TYPES, DEFAULT_CENTER } from './config.js';
-import { log, setStatus, $ } from './utils.js';
-import { initMap, getMap } from './map.js';
+import { state, initResourceSettings, getResourceSettings, setResourceSettings } from './state.js';
+import { RESOURCE_TYPES, RESOURCE_CATEGORIES, DEFAULT_CENTER, DEFAULT_RESOURCE_RADII } from './config.js';
+import { log, setStatus, delay } from './utils.js';
+import { initMap, getMap, getResourceLayer } from './map.js';
 import { findPublicParcels, sortParcels } from './api/parcels.js';
-import { findNearbyResources } from './api/resources.js';
+import { findResourcesByType, findResourcesSequentially } from './api/resources.js';
 import { bestAvailable } from '../providers.js';
 
-import { buildFilterGrid, buildResourceFilterGrid, selectAllFilters, selectNoFilters, selectRecommended, selectAllResFilters, selectNoResFilters } from './ui/filters.js';
+import { 
+  buildFilterGrid, 
+  buildResourceCategoryFilters, 
+  selectAllFilters, 
+  selectNoFilters, 
+  selectRecommended,
+  getCheckedTypesInCategory,
+  getAllTypesInCategory,
+  checkAllInCategory,
+  updateResourceStatus,
+  getRadiusForType
+} from './ui/filters.js';
 import { openPanel, togglePanel, toggleLegend } from './ui/panels.js';
 import { displayParcels, displayResources, selectParcel } from './ui/cards.js';
 import { toggleInspectorMode, handleInspectorClick } from './ui/inspector.js';
@@ -19,6 +30,7 @@ window.addEventListener('unhandledrejection', e => alert('Async error: ' + (e.re
 async function searchParcels() {
   setStatus('⏳ Searching...');
   document.getElementById('panel')?.classList.add('open');
+  openPanel('parcels');
 
   const radius = parseFloat(document.getElementById('radiusSlider')?.value || 0.5);
   const sortBy = document.getElementById('sortSel')?.value || 'risk';
@@ -56,28 +68,132 @@ async function searchParcels() {
   }
 }
 
-async function searchResources() {
-  setStatus('🔍 Loading resources...');
-  document.getElementById('panel')?.classList.add('open');
-  openPanel('resources');
-
-  log('Resources: loading...', 'info');
-
+async function loadResourceType(type) {
+  const map = getMap();
+  const center = state.searchCenter || { lat: map.getCenter().lat, lon: map.getCenter().lng };
+  const radius = getRadiusForType(type);
+  
+  setStatus(`⏳ Loading ${RESOURCE_TYPES[type]?.label || type}...`);
+  log(`Resources: loading ${type} (${radius}mi)`, 'info');
+  
   try {
-    const map = getMap();
-    const center = state.searchCenter || { lat: map.getCenter().lat, lon: map.getCenter().lng };
-    const resources = await findNearbyResources({
-      lat: center.lat,
-      lon: center.lon,
-      radiusMeters: 1500,
-      types: state.enabledResourceTypes
-    });
-    displayResources(resources);
-    setStatus(`✅ ${resources.length} resources`);
-    log(`Resources: found ${resources.length}`, 'success');
+    const resources = await findResourcesByType(type, center.lat, center.lon, radius);
+    
+    if (!state.loadedResources[type]) {
+      state.loadedResources[type] = [];
+    }
+    state.loadedResources[type] = resources;
+    
+    const markers = createResourceMarkers(resources);
+    state.resourceMarkers[type] = markers;
+    
+    const settings = getResourceSettings(type);
+    if (settings.enabled) {
+      markers.forEach(m => m.addTo(getResourceLayer()));
+    }
+    
+    updateResourceStatus(type, resources.length);
+    setStatus(`✅ ${resources.length} ${RESOURCE_TYPES[type]?.label || type}`);
+    log(`Resources: found ${resources.length} ${type}`, 'success');
+    
+    return resources;
   } catch (e) {
     setStatus('❌ ' + e.message);
     log(`Resources: ${e.message}`, 'error');
+    return [];
+  }
+}
+
+async function loadResourcesSequential(types) {
+  const map = getMap();
+  const center = state.searchCenter || { lat: map.getCenter().lat, lon: map.getCenter().lng };
+  
+  let totalLoaded = 0;
+  
+  for (let i = 0; i < types.length; i++) {
+    const type = types[i];
+    const radius = getRadiusForType(type);
+    
+    setStatus(`⏳ ${i + 1}/${types.length}: ${RESOURCE_TYPES[type]?.label || type}...`);
+    
+    try {
+      const resources = await findResourcesByType(type, center.lat, center.lon, radius);
+      
+      if (!state.loadedResources[type]) {
+        state.loadedResources[type] = [];
+      }
+      state.loadedResources[type] = resources;
+      
+      const markers = createResourceMarkers(resources);
+      state.resourceMarkers[type] = markers;
+      
+      const settings = getResourceSettings(type);
+      if (settings.enabled) {
+        markers.forEach(m => m.addTo(getResourceLayer()));
+      }
+      
+      updateResourceStatus(type, resources.length);
+      totalLoaded += resources.length;
+      
+      if (i < types.length - 1) {
+        await delay(500);
+      }
+    } catch (e) {
+      log(`Resources: ${type} failed - ${e.message}`, 'warn');
+    }
+  }
+  
+  setStatus(`✅ ${totalLoaded} resources loaded`);
+  return totalLoaded;
+}
+
+function createResourceMarkers(resources) {
+  const layer = getResourceLayer();
+  return resources.map(r => {
+    const marker = L.circleMarker([r.lat, r.lon], {
+      radius: 6,
+      fillColor: r.type === 'water' ? '#58a6ff' : 
+                 r.type === 'shelter' ? '#f85149' :
+                 r.type === 'food_bank' ? '#f97316' : '#3fb950',
+      fillOpacity: 0.9,
+      color: '#fff',
+      weight: 1
+    });
+    
+    marker.bindPopup(`
+      <b>${r.icon} ${r.name}</b><br>
+      <span style="color:#8b949e">${r.type_label}</span><br>
+      ${r.address ? `<span style="font-size:0.85rem">${r.address}</span><br>` : ''}
+      ${r.dist_miles ? `<span style="font-size:0.8rem;color:#58a6ff">${r.dist_miles.toFixed(2)} mi</span>` : ''}
+    `);
+    
+    return marker;
+  });
+}
+
+function clearResourceMarkers(types) {
+  const layer = getResourceLayer();
+  types.forEach(type => {
+    const markers = state.resourceMarkers[type];
+    if (markers) {
+      markers.forEach(m => layer.removeLayer(m));
+      state.resourceMarkers[type] = [];
+      state.loadedResources[type] = [];
+      updateResourceStatus(type, 0);
+    }
+  });
+}
+
+function clearAllResourceMarkers() {
+  const layer = getResourceLayer();
+  for (const [type, markers] of Object.entries(state.resourceMarkers)) {
+    markers.forEach(m => layer.removeLayer(m));
+  }
+  state.resourceMarkers = {};
+  state.loadedResources = {};
+  
+  for (const type of Object.keys(RESOURCE_TYPES)) {
+    updateResourceStatus(type, 0);
   }
 }
 
@@ -154,17 +270,15 @@ function getLocation() {
 function wireEvents() {
   document.getElementById('locBtn')?.addEventListener('click', getLocation);
   document.getElementById('searchBtn')?.addEventListener('click', searchParcels);
-  document.getElementById('applySearch')?.addEventListener('click', searchParcels);
-  document.getElementById('resBtn')?.addEventListener('click', searchResources);
   document.getElementById('inspectorBtn')?.addEventListener('click', toggleInspectorMode);
   document.getElementById('askBtn')?.addEventListener('click', () => { openPanel('ask'); document.getElementById('panel')?.classList.add('open'); });
   document.getElementById('settingsBtn')?.addEventListener('click', openSettings);
   document.getElementById('closeSettings')?.addEventListener('click', closeSettings);
   document.getElementById('saveSettings')?.addEventListener('click', saveSettings);
   
-  document.getElementById('filterBtn')?.addEventListener('click', () => {
-    const panel = document.getElementById('filters-panel');
-    panel?.classList.toggle('open');
+  document.getElementById('resBtn')?.addEventListener('click', () => {
+    document.getElementById('panel')?.classList.add('open');
+    openPanel('resources');
   });
   
   document.getElementById('handle')?.addEventListener('click', togglePanel);
@@ -192,18 +306,54 @@ function wireEvents() {
     if (val) val.textContent = e.target.value + ' mi';
   });
   
-  document.querySelectorAll('.filter-actions .btn').forEach(btn => {
-    const text = btn.textContent.trim();
-    if (text === 'All') btn.addEventListener('click', selectAllFilters);
-    else if (text === 'None') btn.addEventListener('click', selectNoFilters);
-    else if (text === 'Recommended') btn.addEventListener('click', selectRecommended);
+  document.getElementById('selectAllClasses')?.addEventListener('click', selectAllFilters);
+  document.getElementById('selectNoClasses')?.addEventListener('click', selectNoFilters);
+  document.getElementById('selectRecommended')?.addEventListener('click', selectRecommended);
+  
+  document.getElementById('resourceCategories')?.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    
+    const cat = btn.dataset.category;
+    
+    if (btn.classList.contains('resource-load')) {
+      const type = btn.dataset.type;
+      loadResourceType(type);
+    }
+    else if (btn.classList.contains('cat-load-selected')) {
+      const types = getCheckedTypesInCategory(cat);
+      if (types.length > 0) loadResourcesSequential(types);
+    }
+    else if (btn.classList.contains('cat-clear-selected')) {
+      const types = getCheckedTypesInCategory(cat);
+      clearResourceMarkers(types);
+    }
+    else if (btn.classList.contains('cat-load-all')) {
+      checkAllInCategory(cat, true);
+      const types = getAllTypesInCategory(cat);
+      loadResourcesSequential(types);
+    }
+    else if (btn.classList.contains('cat-clear-all')) {
+      const types = getAllTypesInCategory(cat);
+      clearResourceMarkers(types);
+      checkAllInCategory(cat, false);
+    }
   });
   
-  document.querySelectorAll('#tab-resources .filter-actions .btn, #filters-panel .filter-actions:last-child .btn').forEach(btn => {
-    const text = btn.textContent.trim();
-    if (text === 'All') btn.addEventListener('click', selectAllResFilters);
-    else if (text === 'None') btn.addEventListener('click', selectNoResFilters);
+  document.getElementById('loadAllResources')?.addEventListener('click', () => {
+    const allChecked = [];
+    for (const type of Object.keys(RESOURCE_TYPES)) {
+      const settings = getResourceSettings(type);
+      if (settings.enabled) allChecked.push(type);
+    }
+    if (allChecked.length > 0) {
+      loadResourcesSequential(allChecked);
+    } else {
+      setStatus('⚠️ No types selected');
+    }
   });
+  
+  document.getElementById('clearAllResources')?.addEventListener('click', clearAllResourceMarkers);
   
   const map = getMap();
   if (map) {
@@ -218,10 +368,13 @@ function init() {
     applyDisplaySettings();
     initContextMenu();
     
-    state.enabledResourceTypes = Object.keys(RESOURCE_TYPES);
+    initResourceSettings(RESOURCE_TYPES, DEFAULT_RESOURCE_RADII);
+    
+    state.resourceMarkers = {};
+    state.loadedResources = {};
     
     buildFilterGrid();
-    buildResourceFilterGrid();
+    buildResourceCategoryFilters();
     
     wireEvents();
     

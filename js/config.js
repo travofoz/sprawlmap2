@@ -88,6 +88,80 @@ export const HARDCODED_RESOURCES = [
   { type: 'mental_health', name: 'Netcare Access', address: '199 S Central Ave', lat: 39.9602, lon: -83.0007, notes: '24/7 crisis' },
 ];
 
+export const RESOURCE_CATEGORIES = {
+  essential: {
+    label: 'Essential Services',
+    types: ['water', 'toilet', 'shelter', 'food_bank']
+  },
+  healthcare: {
+    label: 'Healthcare',
+    types: ['hospital', 'pharmacy', 'mental_health']
+  },
+  connectivity: {
+    label: 'Connectivity',
+    types: ['bus', 'wifi', 'power']
+  },
+  grocery: {
+    label: 'Groceries',
+    types: ['kroger', 'aldi', 'walmart', 'target']
+  },
+  discount: {
+    label: 'Discount Stores',
+    types: ['dollar_store', 'big_lots']
+  },
+  thrift: {
+    label: 'Thrift & Used',
+    types: ['thrift', 'used_clothes']
+  },
+  services: {
+    label: 'Services',
+    types: ['library', 'laundry', 'police']
+  },
+  recycling: {
+    label: 'Recycling & Scrap',
+    types: ['recycling', 'scrap_yard', 'pawn_shop']
+  },
+  other: {
+    label: 'Other',
+    types: ['mcdonalds', 'speedway', 'sheetz', 'electronics', 'dog_park', 'apartments']
+  }
+};
+
+export const DEFAULT_RESOURCE_RADII = {
+  water: 0.5,
+  toilet: 0.5,
+  shelter: 1,
+  food_bank: 1,
+  hospital: 2,
+  pharmacy: 1,
+  mental_health: 1,
+  bus: 0.25,
+  wifi: 0.5,
+  power: 0.5,
+  kroger: 1,
+  aldi: 1,
+  walmart: 2,
+  target: 2,
+  dollar_store: 1,
+  big_lots: 1,
+  thrift: 1,
+  used_clothes: 1,
+  library: 0.5,
+  laundry: 0.5,
+  police: 1,
+  recycling: 2,
+  scrap_yard: 3,
+  pawn_shop: 2,
+  mcdonalds: 0.5,
+  speedway: 0.5,
+  sheetz: 0.5,
+  electronics: 1,
+  dog_park: 0.5,
+  apartments: 0.5
+};
+
+export const RADIUS_OPTIONS = [0.25, 0.5, 1, 2, 3, 5];
+
 export const MAP_STYLES = {
   osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
