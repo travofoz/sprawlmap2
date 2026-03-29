@@ -3,23 +3,40 @@ import { riskText } from '../config.js';
 import { getMap, getParcelLayerGroup, getResourceLayer } from '../map.js';
 import { log } from '../utils.js';
 
-export function displayParcels(parcels) {
+export function displayParcels(parcels, searchParams = {}) {
   state.currentParcels = parcels;
   const parcelLayerGroup = getParcelLayerGroup();
   if (parcelLayerGroup) parcelLayerGroup.clearLayers();
   state.parcelPolygons = {};
   
-  const el = document.getElementById('tab-parcels');
+  const el = document.getElementById('parcelResults');
   if (!el) return;
 
   if (!parcels.length) {
-    el.innerHTML = '<p style="color:#8b949e;font-size:0.8rem">No parcels found. Try expanding radius or filters.</p>';
+    el.innerHTML = `
+      <div class="search-summary" style="margin-bottom:8px;padding:6px;background:#21262d;border-radius:4px;">
+        <span style="color:#8b949e;font-size:0.75rem">No results for ${searchParams.radius || '?'} mi radius, ${searchParams.classCount || '?'} class codes</span>
+      </div>
+      <button class="btn sm" id="modifySearchBtn" style="width:100%">Modify Search Filters</button>
+      <p style="color:#8b949e;font-size:0.8rem;margin-top:8px">Try expanding radius or selecting more class codes.</p>`;
+    wireModifySearchBtn();
     return;
   }
 
   const counts = { low: 0, med: 0, avoid: 0, high: 0 };
   parcels.forEach(p => counts[p.risk] = (counts[p.risk] || 0) + 1);
-  el.innerHTML = `<p style="color:#8b949e;font-size:0.7rem;margin-bottom:6px">${parcels.length} parcels — 🟢${counts.low} 🟡${counts.med} 🔴${counts.avoid + counts.high}</p>`;
+  
+  el.innerHTML = `
+    <div class="search-summary" style="margin-bottom:8px;padding:6px;background:#21262d;border-radius:4px;">
+      <span style="color:#8b949e;font-size:0.75rem">${searchParams.radius || '?'} mi radius · ${searchParams.classCount || '?'} class codes</span>
+      <span style="color:#3fb950;font-size:0.75rem;margin-left:8px">${parcels.length} parcels — 🟢${counts.low} 🟡${counts.med} 🔴${counts.avoid + counts.high}</span>
+    </div>
+    <button class="btn sm" id="modifySearchBtn" style="width:100%;margin-bottom:8px">Modify Search Filters</button>
+    <div id="parcelCards"></div>`;
+  
+  wireModifySearchBtn();
+  
+  const cardsContainer = document.getElementById('parcelCards');
 
   for (const p of parcels) {
     if (p.geometry && p.geometry.coordinates && p.geometry.coordinates[0]) {
@@ -55,7 +72,19 @@ export function displayParcels(parcels) {
       <h3>${p.address || '(no address)'}</h3>
       <p>${distHtml}${p.acres?.toFixed(2) || '?'} ac · ${p.owner?.slice(0, 30) || 'Unknown'}</p>`;
 
-    el.appendChild(card);
+    cardsContainer.appendChild(card);
+  }
+}
+
+function wireModifySearchBtn() {
+  const btn = document.getElementById('modifySearchBtn');
+  if (btn) {
+    btn.onclick = () => {
+      const filters = document.querySelector('.parcel-filters');
+      if (filters) {
+        filters.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
   }
 }
 

@@ -59,7 +59,7 @@ async function searchParcels() {
     });
 
     parcels = sortParcels(parcels, sortBy, state.gpsLat, state.gpsLon);
-    displayParcels(parcels);
+    displayParcels(parcels, { radius, classCount: state.enabledClasses.length });
     setStatus(`✅ ${parcels.length} parcels`);
     log(`Search: found ${parcels.length} parcels`, 'success');
   } catch (e) {
@@ -243,7 +243,7 @@ function clearParcelResults() {
   state.parcelPolygons = {};
   state.currentParcels = [];
   const results = document.getElementById('parcelResults');
-  if (results) results.innerHTML = '<p style="color:#8b949e;font-size:0.8rem">Tap 📍 then 🔍 Search</p>';
+  if (results) results.innerHTML = '<p style="color:#8b949e;font-size:0.8rem">Set filters above, then click Apply Search</p>';
   setStatus('Cleared');
 }
 
