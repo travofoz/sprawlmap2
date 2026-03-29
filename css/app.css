@@ -56,21 +56,8 @@
 
 #map { flex: 1; min-height: 200px; }
 
-/* Filters panel */
-#filters-panel {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 8px;
-  display: none;
-  z-index: 2500;
-  max-height: 50dvh;
-  overflow-y: auto;
-}
-#filters-panel.open { display: block; }
-#filters-panel h3 { font-size: 0.8rem; color: var(--text2); margin-bottom: 6px; }
-
-.filter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
-.filter-row {
+.parcel-class-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+.parcel-class-row {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -80,65 +67,11 @@
   cursor: pointer;
   font-size: 0.7rem;
 }
-.filter-row input { margin: 0; }
-.filter-row.avoid { border: 1px solid var(--red); }
+.parcel-class-row input { margin: 0; }
+.parcel-class-row.avoid { border: 1px solid var(--red); }
 .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.filter-actions { display: flex; gap: 4px; margin-top: 6px; }
-
-#filters-panel select,
-#filters-panel input[type="range"] {
-  font-size: inherit;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 4px;
-}
-#filters-panel input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  background: var(--bg3);
-  border: none;
-  border-radius: 3px;
-  padding: 0;
-}
-#filters-panel input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 50%;
-  cursor: pointer;
-}
-#filters-panel input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: var(--accent);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-}
-
-/* Search controls */
-#search-controls {
-  display: flex;
-  gap: 4px;
-  padding: 6px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  align-items: center;
-}
-#search-controls select {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  padding: 4px 6px;
-  font-size: 0.8rem;
-}
-#search-controls button { padding: 4px 12px; }
+.parcel-class-actions { display: flex; gap: 4px; margin-top: 6px; }
+.parcel-search-actions { display: flex; gap: 4px; margin-top: 8px; }
 
 /* Legend */
 #legend {

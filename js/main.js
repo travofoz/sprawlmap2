@@ -1,16 +1,16 @@
 import { state, initResourceSettings, getResourceSettings, setResourceSettings } from './state.js';
 import { RESOURCE_TYPES, RESOURCE_CATEGORIES, DEFAULT_CENTER, DEFAULT_RESOURCE_RADII } from './config.js';
 import { log, setStatus, delay } from './utils.js';
-import { initMap, getMap, getResourceLayer } from './map.js';
+import { initMap, getMap, getResourceLayer, getParcelLayerGroup } from './map.js';
 import { findPublicParcels, sortParcels } from './api/parcels.js';
 import { findResourcesByType, findResourcesSequentially } from './api/resources.js';
 import { bestAvailable } from '../providers.js';
 
 import { 
-  buildFilterGrid, 
+  buildParcelClassGrid, 
   buildResourceCategoryFilters, 
-  selectAllFilters, 
-  selectNoFilters, 
+  selectAllParcelClasses, 
+  selectNoParcelClasses, 
   selectRecommended,
   getCheckedTypesInCategory,
   getAllTypesInCategory,
@@ -237,6 +237,16 @@ Prioritize LOW risk. Be specific with addresses. Be brief and practical.`;
   }
 }
 
+function clearParcelResults() {
+  const parcelLayerGroup = getParcelLayerGroup();
+  if (parcelLayerGroup) parcelLayerGroup.clearLayers();
+  state.parcelPolygons = {};
+  state.currentParcels = [];
+  const results = document.getElementById('parcelResults');
+  if (results) results.innerHTML = '<p style="color:#8b949e;font-size:0.8rem">Tap 📍 then 🔍 Search</p>';
+  setStatus('Cleared');
+}
+
 function getLocation() {
   setStatus('📡 Getting GPS...');
   log('GPS: requesting location...', 'info');
@@ -269,7 +279,12 @@ function getLocation() {
 
 function wireEvents() {
   document.getElementById('locBtn')?.addEventListener('click', getLocation);
-  document.getElementById('searchBtn')?.addEventListener('click', searchParcels);
+  document.getElementById('searchBtn')?.addEventListener('click', () => {
+    document.getElementById('panel')?.classList.add('open');
+    openPanel('parcels');
+  });
+  document.getElementById('applyParcelSearch')?.addEventListener('click', searchParcels);
+  document.getElementById('clearParcelResults')?.addEventListener('click', clearParcelResults);
   document.getElementById('inspectorBtn')?.addEventListener('click', toggleInspectorMode);
   document.getElementById('askBtn')?.addEventListener('click', () => { openPanel('ask'); document.getElementById('panel')?.classList.add('open'); });
   document.getElementById('settingsBtn')?.addEventListener('click', openSettings);
@@ -306,8 +321,8 @@ function wireEvents() {
     if (val) val.textContent = e.target.value + ' mi';
   });
   
-  document.getElementById('selectAllClasses')?.addEventListener('click', selectAllFilters);
-  document.getElementById('selectNoClasses')?.addEventListener('click', selectNoFilters);
+  document.getElementById('selectAllClasses')?.addEventListener('click', selectAllParcelClasses);
+  document.getElementById('selectNoClasses')?.addEventListener('click', selectNoParcelClasses);
   document.getElementById('selectRecommended')?.addEventListener('click', selectRecommended);
   
   document.getElementById('resourceCategories')?.addEventListener('click', e => {
@@ -373,7 +388,7 @@ function init() {
     state.resourceMarkers = {};
     state.loadedResources = {};
     
-    buildFilterGrid();
+    buildParcelClassGrid();
     buildResourceCategoryFilters();
     
     wireEvents();
