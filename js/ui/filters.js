@@ -3,15 +3,15 @@ import { CLASS_CODES, RESOURCE_TYPES, RESOURCE_CATEGORIES, RADIUS_OPTIONS } from
 import { getParcelLayerGroup, getResourceLayer } from '../map.js';
 import { log } from '../utils.js';
 
-export function buildFilterGrid() {
-  const grid = document.getElementById('filterGrid');
+export function buildParcelClassGrid() {
+  const grid = document.getElementById('parcelClassGrid');
   if (!grid) return;
   grid.innerHTML = '';
   
   for (const [code, info] of Object.entries(CLASS_CODES)) {
     const checked = state.enabledClasses.includes(code) ? 'checked' : '';
     const row = document.createElement('label');
-    row.className = `filter-row ${info.risk === 'avoid' ? 'avoid' : ''}`;
+    row.className = `parcel-class-row ${info.risk === 'avoid' ? 'avoid' : ''}`;
     row.innerHTML = `
       <input type="checkbox" data-class="${code}" ${checked}>
       <span class="color-dot" style="background:${info.color}"></span>
@@ -176,13 +176,13 @@ export function checkAllInCategory(categoryKey, checked) {
   updateResourceVisibility();
 }
 
-export function selectAllFilters() {
+export function selectAllParcelClasses() {
   state.enabledClasses = Object.keys(CLASS_CODES);
   document.querySelectorAll('[data-class]').forEach(cb => cb.checked = true);
   updateMapVisibility();
 }
 
-export function selectNoFilters() {
+export function selectNoParcelClasses() {
   state.enabledClasses = [];
   document.querySelectorAll('[data-class]').forEach(cb => cb.checked = false);
   updateMapVisibility();
