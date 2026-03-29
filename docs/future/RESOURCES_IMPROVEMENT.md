@@ -1,6 +1,6 @@
 # Resources Data Improvement
 
-**Status:** Future
+**Status:** Partial (Phase 1-2 Complete)
 **Priority:** Medium
 **Related:** `js/api/resources.js`, `js/config.js` (RESOURCE_TYPES, HARDCODED_RESOURCES)
 
@@ -32,22 +32,41 @@ Many resource types return few or no results when searching in Columbus OH area.
 
 ---
 
-## Potential Solutions
+## Completed Solutions
 
-| Approach | Effort | Impact | Notes |
-|----------|--------|--------|-------|
-| Expand Overpass queries | Low | Medium | Add `way[]` and `relation[]` to queries |
-| Add more hardcoded resources | Medium | Medium | Manual research for Columbus area |
-| Use alternative APIs | High | High | Google Places, Foursquare, Yelp (requires API keys) |
-| Columbus open data import | High | High | City has open data portals |
-| Community contribution | Medium | Medium | Allow users to submit resources |
+### Phase 1: Expand Overpass Queries ✅ (2026-03-29)
+
+Added `way[]` variants to all building-based resource types:
+- `water`, `toilet`, `shelter`, `food_bank`, `hospital`, `pharmacy`, `mental_health`
+- `library`, `laundry`, `power`, `wifi`, `police`, `recycling`, `pawn_shop`
+- All brand searches (mcdonalds, speedway, walmart, etc.)
+
+**Result:** Columbus Metropolitan Library now found as `way` type (previously missed).
+
+### Phase 2: Case-Insensitive Brand Regex ✅ (2026-03-29)
+
+Added `i` flag to all brand/name regex patterns:
+- `["name"~"McDonald",i]` now matches "MCDONALDS", "mcdonalds", etc.
+- Applied to: mcdonalds, speedway, sheetz, aldi, kroger, dollar_store, big_lots, walmart, target, thrift, scrap_yard, used_clothes, electronics
 
 ---
 
-## Files to Modify
+## Remaining Solutions (Future)
 
-- `js/config.js` - RESOURCE_TYPES, HARDCODED_RESOURCES
-- `js/api/resources.js` - Overpass query logic, batching
+| Approach | Effort | Impact | Status |
+|----------|--------|--------|--------|
+| Expand Overpass queries | Low | Medium | ✅ Done |
+| Fix case-sensitive regex | Low | Medium | ✅ Done |
+| Add more hardcoded resources | Medium | Medium | Pending |
+| Use alternative APIs | High | High | Pending |
+| Columbus open data import | High | High | Pending |
+| Community contribution | Medium | Medium | Pending |
+
+---
+
+## Files Modified
+
+- `js/config.js` - RESOURCE_TYPES updated with way[] variants and case-insensitive regex
 
 ---
 
