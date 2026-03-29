@@ -1,11 +1,11 @@
 import * as manager from './manager.js';
 import { PARCEL_CATEGORIES, RESOURCE_TYPES, RESOURCE_CATEGORIES, DEFAULT_RESOURCE_RADII } from './types.js';
-import { setStatus } from '../../utils.js';
-import { getMap, getParcelLayerGroup, getResourceLayer } from '../../map.js';
-import { findPublicParcels, sortParcels } from '../../api/parcels.js';
-import { findResourcesByType } from '../../api/resources.js';
-import { state } from '../../state.js';
-import { riskText, CLASS_CODES } from '../../config.js';
+import { setStatus } from '../utils.js';
+import { getMap, getParcelLayerGroup, getResourceLayer } from '../map.js';
+import { findPublicParcels, sortParcels } from '../api/parcels.js';
+import { findResourcesByType } from '../api/resources.js';
+import { state } from '../state.js';
+import { riskText, CLASS_CODES } from '../config.js';
 
 let panelEl = null;
 let listEl = null;
