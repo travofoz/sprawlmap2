@@ -415,34 +415,45 @@ function requestInitialLocation() {
   setStatus('📡 Getting location...');
   navigator.geolocation.getCurrentPosition(
     pos => {
-      state.curLat = pos.coords.latitude;
-      state.curLon = pos.coords.longitude;
-      state.gpsLat = state.curLat;
-      state.gpsLon = state.curLon;
-      
-      const map = getMap();
-      map.setView([state.curLat, state.curLon], 14);
-      
-      if (state.userMarker) state.userMarker.remove();
-      state.userMarker = L.circleMarker([state.curLat, state.curLon], {
-        radius: 8, fillColor: '#58a6ff', fillOpacity: 1, color: '#fff', weight: 2
-      }).addTo(map).bindPopup('📍 You');
-      
-      const search = searchManager.createSearch(
-        { lat: state.curLat, lon: state.curLon, source: 'gps' },
-        { name: null }
-      );
-      
-      log(`Created initial search at GPS location`, 'success');
-      setStatus('✅ Location found. Search created.');
+      try {
+        state.curLat = pos.coords.latitude;
+        state.curLon = pos.coords.longitude;
+        state.gpsLat = state.curLat;
+        state.gpsLon = state.curLon;
+        
+        const map = getMap();
+        if (map) {
+          map.setView([state.curLat, state.curLon], 14);
+          
+          if (state.userMarker) state.userMarker.remove();
+          state.userMarker = L.circleMarker([state.curLat, state.curLon], {
+            radius: 8, fillColor: '#58a6ff', fillOpacity: 1, color: '#fff', weight: 2
+          }).addTo(map).bindPopup('📍 You');
+        }
+        
+        searchManager.createSearch(
+          { lat: state.curLat, lon: state.curLon, source: 'gps' },
+          { name: null }
+        );
+        
+        log(`Created initial search at GPS location`, 'success');
+        setStatus('✅ Location found. Search created.');
+      } catch (e) {
+        console.error('Error creating initial search:', e);
+        log('Error creating search: ' + e.message, 'error');
+      }
     },
     err => {
-      log(`GPS unavailable, using default location`, 'warn');
-      const search = searchManager.createSearch(
-        { lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon, source: 'default' },
-        { name: 'Downtown Columbus' }
-      );
-      setStatus('📍 Using default location');
+      try {
+        log(`GPS unavailable, using default location`, 'warn');
+        searchManager.createSearch(
+          { lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon, source: 'default' },
+          { name: 'Downtown Columbus' }
+        );
+        setStatus('📍 Using default location');
+      } catch (e) {
+        console.error('Error creating default search:', e);
+      }
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );

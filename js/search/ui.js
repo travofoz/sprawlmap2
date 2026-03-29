@@ -12,70 +12,87 @@ let listEl = null;
 let isPanelOpen = false;
 
 export function init() {
-  panelEl = document.getElementById('searchManagerPanel');
-  listEl = document.getElementById('searchManagerList');
-  
-  if (!panelEl) {
-    createPanelHTML();
+  try {
+    panelEl = document.getElementById('searchManagerPanel');
+    listEl = document.getElementById('searchManagerList');
+    
+    if (!panelEl) {
+      createPanelHTML();
+      panelEl = document.getElementById('searchManagerPanel');
+      listEl = document.getElementById('searchManagerList');
+    }
+    
+    if (!panelEl || !listEl) {
+      console.warn('Search Manager: panel elements not available');
+      return;
+    }
+    
+    wireEvents();
+    
+    manager.on('created', () => renderList());
+    manager.on('updated', () => renderList());
+    manager.on('deleted', () => renderList());
+    manager.on('activated', () => renderList());
+    manager.on('favorite', () => renderList());
+    manager.on('lock', () => renderList());
+    manager.on('cleared', () => renderList());
+    manager.on('loaded', ({ searchId }) => updateSearchCard(searchId));
+    manager.on('queue:added', updateQueueIndicator);
+    manager.on('queue:processing', updateQueueIndicator);
+    manager.on('queue:empty', updateQueueIndicator);
+    
+    renderList();
+  } catch (e) {
+    console.error('Search UI init failed:', e);
   }
-  
-  wireEvents();
-  
-  manager.on('created', () => renderList());
-  manager.on('updated', () => renderList());
-  manager.on('deleted', () => renderList());
-  manager.on('activated', () => renderList());
-  manager.on('favorite', () => renderList());
-  manager.on('lock', () => renderList());
-  manager.on('cleared', () => renderList());
-  manager.on('loaded', ({ searchId, type, result }) => {
-    updateSearchCard(searchId);
-  });
-  manager.on('queue:added', updateQueueIndicator);
-  manager.on('queue:processing', updateQueueIndicator);
-  manager.on('queue:empty', updateQueueIndicator);
-  
-  renderList();
 }
 
 function createPanelHTML() {
-  const panel = document.createElement('div');
-  panel.id = 'searchManagerPanel';
-  panel.className = 'search-manager-panel';
-  panel.innerHTML = `
-    <div class="sm-header">
-      <span class="sm-title">🔍 Search Manager</span>
-      <button class="sm-close" id="smClose" title="Close">✕</button>
-    </div>
-    <div class="sm-actions">
-      <button class="btn green sm" id="smNewSearch">+ New Search</button>
-      <button class="btn sm" id="smClearAll">🗑 Clear All</button>
-      <span class="sm-queue" id="smQueue"></span>
-    </div>
-    <div class="sm-list" id="searchManagerList"></div>
-    <div class="sm-footer">
-      <span class="sm-stats" id="smStats"></span>
-    </div>
-  `;
-  document.body.appendChild(panel);
-  panelEl = panel;
-  listEl = document.getElementById('searchManagerList');
+  try {
+    const panel = document.createElement('div');
+    panel.id = 'searchManagerPanel';
+    panel.className = 'search-manager-panel';
+    panel.innerHTML = `
+      <div class="sm-header">
+        <span class="sm-title">🔍 Search Manager</span>
+        <button class="sm-close" id="smClose" title="Close">✕</button>
+      </div>
+      <div class="sm-actions">
+        <button class="btn green sm" id="smNewSearch">+ New Search</button>
+        <button class="btn sm" id="smClearAll">🗑 Clear All</button>
+        <span class="sm-queue" id="smQueue"></span>
+      </div>
+      <div class="sm-list" id="searchManagerList"></div>
+      <div class="sm-footer">
+        <span class="sm-stats" id="smStats"></span>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    panelEl = panel;
+    listEl = document.getElementById('searchManagerList');
+  } catch (e) {
+    console.error('Failed to create search panel:', e);
+  }
 }
 
 function wireEvents() {
-  document.getElementById('smClose')?.addEventListener('click', closePanel);
-  document.getElementById('smNewSearch')?.addEventListener('click', showNewSearchModal);
-  document.getElementById('smClearAll')?.addEventListener('click', showClearAllConfirm);
-  
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && isPanelOpen) {
-      if (document.querySelector('.sm-modal.show')) {
-        closeAllModals();
-      } else {
-        closePanel();
+  try {
+    document.getElementById('smClose')?.addEventListener('click', closePanel);
+    document.getElementById('smNewSearch')?.addEventListener('click', showNewSearchModal);
+    document.getElementById('smClearAll')?.addEventListener('click', showClearAllConfirm);
+    
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && isPanelOpen) {
+        if (document.querySelector('.sm-modal.show')) {
+          closeAllModals();
+        } else {
+          closePanel();
+        }
       }
-    }
-  });
+    });
+  } catch (e) {
+    console.error('Error wiring search UI events:', e);
+  }
 }
 
 export function openPanel() {
@@ -101,22 +118,26 @@ export function togglePanel() {
 export function renderList() {
   if (!listEl) return;
   
-  const searches = manager.getAllSearches();
-  const activeId = manager.getActiveSearch()?.id;
-  
-  if (searches.length === 0) {
-    listEl.innerHTML = `
-      <div class="sm-empty">
-        <p>No saved searches</p>
-        <p style="font-size:0.8rem;color:#8b949e">Click "+ New Search" or right-click the map to create one</p>
-      </div>
-    `;
-  } else {
-    listEl.innerHTML = searches.map(search => renderSearchCard(search, search.id === activeId)).join('');
-    wireSearchCardEvents();
+  try {
+    const searches = manager.getAllSearches();
+    const activeId = manager.getActiveSearch()?.id;
+    
+    if (searches.length === 0) {
+      listEl.innerHTML = `
+        <div class="sm-empty">
+          <p>No saved searches</p>
+          <p style="font-size:0.8rem;color:#8b949e">Click "+ New Search" or right-click the map to create one</p>
+        </div>
+      `;
+    } else {
+      listEl.innerHTML = searches.map(search => renderSearchCard(search, search.id === activeId)).join('');
+      wireSearchCardEvents();
+    }
+    
+    updateStats();
+  } catch (e) {
+    console.error('Error rendering search list:', e);
   }
-  
-  updateStats();
 }
 
 function renderSearchCard(search, isActive) {

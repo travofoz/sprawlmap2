@@ -9,14 +9,20 @@ const loadQueue = [];
 let isProcessingQueue = false;
 
 export function init() {
-  searches = load(KEYS.SEARCHES, []);
-  activeSearchId = load(KEYS.ACTIVE_ID, null);
-  
-  if (searches.length > 0 && !activeSearchId) {
-    activeSearchId = searches[0].id;
+  try {
+    searches = load(KEYS.SEARCHES, []);
+    activeSearchId = load(KEYS.ACTIVE_ID, null);
+    
+    if (searches.length > 0 && !activeSearchId) {
+      activeSearchId = searches[0].id;
+    }
+    
+    emit('initialized', { searchCount: searches.length, activeId: activeSearchId });
+  } catch (e) {
+    console.error('Search manager init failed:', e);
+    searches = [];
+    activeSearchId = null;
   }
-  
-  emit('initialized', { searchCount: searches.length, activeId: activeSearchId });
 }
 
 export function createSearch(location, options = {}) {
@@ -44,24 +50,28 @@ export function createSearch(location, options = {}) {
     }
   };
   
-  searches.unshift(search);
-  saveSearches();
-  
-  emit('created', { search });
-  
-  if (!search.name) {
-    generateSearchName(location.lat, location.lon, searches.map(s => s.name).filter(Boolean))
-      .then(name => {
-        search.name = name;
-        search.updated = new Date().toISOString();
-        saveSearches();
-        emit('renamed', { searchId: search.id, name });
-      })
-      .catch(() => {
-        search.name = `Search ${searches.length}`;
-        search.updated = new Date().toISOString();
-        saveSearches();
-      });
+  try {
+    searches.unshift(search);
+    saveSearches();
+    emit('created', { search });
+    
+    if (!search.name) {
+      generateSearchName(location.lat, location.lon, searches.map(s => s.name).filter(Boolean))
+        .then(name => {
+          search.name = name;
+          search.updated = new Date().toISOString();
+          saveSearches();
+          emit('renamed', { searchId: search.id, name });
+        })
+        .catch(err => {
+          console.error('Failed to generate search name:', err);
+          search.name = `Search ${searches.length}`;
+          search.updated = new Date().toISOString();
+          saveSearches();
+        });
+    }
+  } catch (e) {
+    console.error('Error creating search:', e);
   }
   
   return search;
