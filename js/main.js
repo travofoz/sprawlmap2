@@ -23,6 +23,8 @@ import { displayParcels, displayResources, selectParcel } from './ui/cards.js';
 import { toggleInspectorMode, handleInspectorClick } from './ui/inspector.js';
 import { initSettings, applyDisplaySettings, saveSettings, openSettings, closeSettings } from './ui/settings.js';
 import { initContextMenu } from './ui/context-menu.js';
+import * as searchManager from './search/manager.js';
+import { init as initSearchUI, openPanel as openSearchPanel, togglePanel as toggleSearchPanel, showNewSearchModal } from './search/ui.js';
 
 window.onerror = (msg, src, line) => { alert(`Error L${line}: ${msg}`); return false; };
 window.addEventListener('unhandledrejection', e => alert('Async error: ' + (e.reason?.message || e.reason)));
@@ -279,10 +281,7 @@ function getLocation() {
 
 function wireEvents() {
   document.getElementById('locBtn')?.addEventListener('click', getLocation);
-  document.getElementById('searchBtn')?.addEventListener('click', () => {
-    document.getElementById('panel')?.classList.add('open');
-    openPanel('parcels');
-  });
+  document.getElementById('searchBtn')?.addEventListener('click', openSearchPanel);
   document.getElementById('applyParcelSearch')?.addEventListener('click', searchParcels);
   document.getElementById('clearParcelResults')?.addEventListener('click', clearParcelResults);
   document.getElementById('inspectorBtn')?.addEventListener('click', toggleInspectorMode);
@@ -383,6 +382,9 @@ function init() {
     applyDisplaySettings();
     initContextMenu();
     
+    searchManager.init();
+    initSearchUI();
+    
     initResourceSettings(RESOURCE_TYPES, DEFAULT_RESOURCE_RADII);
     
     state.resourceMarkers = {};
@@ -393,11 +395,57 @@ function init() {
     
     wireEvents();
     
+    if (searchManager.getAllSearches().length === 0) {
+      requestInitialLocation();
+    } else {
+      const active = searchManager.getActiveSearch();
+      if (active) {
+        log(`Restored active search: ${active.name}`, 'info');
+      }
+    }
+    
     log('Sprawlmap initialized', 'success');
   } catch (e) {
     log('Init error: ' + e.message, 'error');
     alert('Initialization failed: ' + e.message);
   }
+}
+
+function requestInitialLocation() {
+  setStatus('📡 Getting location...');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      state.curLat = pos.coords.latitude;
+      state.curLon = pos.coords.longitude;
+      state.gpsLat = state.curLat;
+      state.gpsLon = state.curLon;
+      
+      const map = getMap();
+      map.setView([state.curLat, state.curLon], 14);
+      
+      if (state.userMarker) state.userMarker.remove();
+      state.userMarker = L.circleMarker([state.curLat, state.curLon], {
+        radius: 8, fillColor: '#58a6ff', fillOpacity: 1, color: '#fff', weight: 2
+      }).addTo(map).bindPopup('📍 You');
+      
+      const search = searchManager.createSearch(
+        { lat: state.curLat, lon: state.curLon, source: 'gps' },
+        { name: null }
+      );
+      
+      log(`Created initial search at GPS location`, 'success');
+      setStatus('✅ Location found. Search created.');
+    },
+    err => {
+      log(`GPS unavailable, using default location`, 'warn');
+      const search = searchManager.createSearch(
+        { lat: DEFAULT_CENTER.lat, lon: DEFAULT_CENTER.lon, source: 'default' },
+        { name: 'Downtown Columbus' }
+      );
+      setStatus('📍 Using default location');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
 }
 
 if (document.readyState === 'loading') {

@@ -1,6 +1,8 @@
 import { state } from '../state.js';
 import { getMap } from '../map.js';
 import { setStatus } from '../utils.js';
+import * as searchManager from '../search/manager.js';
+import { showNewSearchModal } from '../search/ui.js';
 
 export function initContextMenu() {
   const map = getMap();
@@ -58,19 +60,13 @@ function pointInPolygon(point, polygon) {
 
 function setSearchCenter() {
   const map = getMap();
-  state.searchCenter = { lat: state.ctxLat, lon: state.ctxLon };
   
-  if (state.centerMarker) state.centerMarker.remove();
+  showNewSearchModal({
+    lat: state.ctxLat,
+    lon: state.ctxLon,
+    source: 'map-click'
+  });
   
-  state.centerMarker = L.marker([state.ctxLat, state.ctxLon], {
-    icon: L.divIcon({
-      html: '<span style="font-size:1.4rem;line-height:1">📍</span>',
-      className: '',
-      iconSize: [24, 24]
-    })
-  }).addTo(map).bindPopup(`Search center: ${state.ctxLat.toFixed(4)}, ${state.ctxLon.toFixed(4)}`);
-  
-  setStatus('✅ Search center set');
   document.getElementById('ctx-menu')?.classList.remove('show');
 }
 

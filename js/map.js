@@ -56,3 +56,9 @@ export function switchTileLayer(style) {
 export function getTileLayer() {
   return currentTileLayer;
 }
+
+export function clearAllLayers() {
+  if (parcelLayerGroup) parcelLayerGroup.clearLayers();
+  if (resourceLayer) resourceLayer.clearLayers();
+  if (inspectorLayerGroup) inspectorLayerGroup.clearLayers();
+}

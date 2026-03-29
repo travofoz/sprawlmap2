@@ -7,13 +7,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
   <link rel="stylesheet" href="css/base.css"/>
   <link rel="stylesheet" href="css/app.css"/>
+  <link rel="stylesheet" href="css/search.css"/>
 </head>
 <body>
 <div id="bar">
   <h1>Sprawlmap</h1>
   <button class="btn" id="locBtn" title="Get GPS Location">📍</button>
-  <button class="btn green" id="searchBtn" title="Search Parcels">🔍</button>
-  <button class="btn" id="resBtn" title="Resources">💡</button>
+  <button class="btn green" id="searchBtn" title="Search Manager">🔍</button>
+  <button class="btn" id="resBtn" title="Resources" style="display:none">💡</button>
   <button class="btn" id="inspectorBtn" title="Parcel Inspector">📋</button>
   <button class="btn" id="askBtn" title="Ask AI">🤖</button>
   <button class="btn" id="settingsBtn" title="Settings">⚙️</button>
@@ -178,6 +179,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
